@@ -1,0 +1,3023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeekFlow — Data Analyst Tracker</title>
+<style>
+/* ══════════════════════════════════════════
+   FORCED LIGHT THEME — Apple Design Language
+   ══════════════════════════════════════════ */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+
+:root {
+  /* Brand */
+  --blue:#007AFF;    --green:#34C759;   --red:#FF3B30;
+  --orange:#FF9500;  --purple:#5856D6;  --teal:#32ADE6;
+  --yellow:#FF9F0A;  --indigo:#5E5CE6;
+
+  /* Light palette — forced, no dark override */
+  --bg:#F5F5F7;
+  --bg2:#EEEEF0;
+  --card:#FFFFFF;
+  --card-glass:rgba(255,255,255,0.82);
+  --card2:#F9F9FB;
+  --label:#8E8E93;
+  --sep:rgba(60,60,67,0.13);
+  --text:#1C1C1E;
+  --text2:#3A3A3C;
+  --text3:#636366;
+
+  --shadow:0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-sm:0 1px 5px rgba(0,0,0,0.06);
+  --shadow-lg:0 20px 60px rgba(0,0,0,0.14);
+
+  --radius:16px; --radius-sm:12px; --radius-xs:8px;
+  --glass-blur:blur(24px) saturate(180%);
+  --glass-border:1px solid rgba(255,255,255,0.6);
+}
+
+html { color-scheme: light only; }
+
+body {
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh; font-size:15px;
+}
+
+/* Soft gradient background */
+body::before {
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 55% at 10% 10%, rgba(0,122,255,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 88% 8%,  rgba(88,86,214,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 50% 95%, rgba(52,199,89,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 95% 55%, rgba(50,173,230,0.04) 0%, transparent 60%);
+}
+
+/* ═══ TOP BAR ═══ */
+.topbar {
+  position:sticky; top:0; z-index:200;
+  background:rgba(245,245,247,0.88);
+  backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+  border-bottom:0.5px solid var(--sep); padding:10px 20px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.topbar-left { display:flex; align-items:center; gap:12px; }
+.app-icon {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  background:linear-gradient(145deg,#007AFF,#5E5CE6);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:18px; box-shadow:0 3px 10px rgba(0,122,255,0.3);
+}
+.app-title { font-size:16px; font-weight:700; letter-spacing:-0.4px; line-height:1; }
+.app-sub   { font-size:11px; color:var(--label); margin-top:1px; }
+.topbar-right { display:flex; gap:8px; align-items:center; }
+.kbd-hints { display:flex; gap:8px; }
+.kh { display:flex; align-items:center; gap:3px; font-size:11px; color:var(--label); }
+.k  { background:var(--sep); border-radius:4px; padding:2px 5px; font-size:10px; font-weight:700; color:var(--text2); }
+
+/* ═══ TABS ═══ */
+.tabs { display:flex; gap:2px; background:var(--sep); border-radius:10px; padding:2px; }
+.tab {
+  padding:5px 13px; border-radius:8px; border:none; font-size:13px; font-weight:500;
+  cursor:pointer; background:transparent; color:var(--text3);
+  transition:all 0.2s; font-family:inherit;
+}
+.tab.active { background:#fff; color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+
+/* ═══ LAYOUT ═══ */
+.main { max-width:900px; margin:0 auto; padding:18px 16px 110px; }
+
+/* Screenshot target — clean white bg */
+.screenshot-target { background:#fff; }
+
+/* ═══ WEEK NAV ═══ */
+.week-nav {
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:12px 16px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.week-nav-center { text-align:center; }
+.week-nav-title  { font-size:15px; font-weight:700; letter-spacing:-0.3px; }
+.week-nav-sub    { font-size:12px; color:var(--label); margin-top:1px; }
+.nav-btn {
+  width:32px; height:32px; border:1px solid var(--sep); background:var(--card2);
+  border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:14px; color:var(--text2); transition:all 0.15s;
+}
+.nav-btn:hover { background:var(--bg2); }
+.week-day-strip {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:12px;
+}
+.day-pill {
+  background:var(--card); border:1.5px solid transparent; border-radius:10px;
+  padding:8px 6px; text-align:center; cursor:pointer; transition:all 0.15s;
+  box-shadow:var(--shadow-sm);
+}
+.day-pill:hover { border-color:var(--blue); }
+.day-pill.active { background:var(--blue); border-color:var(--blue); }
+.day-pill.active .dp-name,
+.day-pill.active .dp-count { color:#fff; }
+.dp-name  { font-size:11px; font-weight:600; color:var(--label); text-transform:uppercase; letter-spacing:0.5px; }
+.dp-date  { font-size:13px; font-weight:600; margin:2px 0; }
+.day-pill.active .dp-date { color:#fff; }
+.dp-count { font-size:11px; color:var(--label); }
+
+/* ═══ STATS ═══ */
+.stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:12px; }
+.stat-card {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:13px 14px; box-shadow:var(--shadow-sm); transition:transform 0.18s;
+}
+.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.stat-val   { font-size:26px; font-weight:700; letter-spacing:-0.8px; line-height:1; }
+.stat-label { font-size:10px; color:var(--label); margin-top:3px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; }
+.stat-sub   { font-size:11px; color:var(--label); margin-top:2px; }
+
+/* ═══ PROGRESS SECTION ═══ */
+.progress-section {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:16px 18px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.prog-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.section-title { font-size:14px; font-weight:700; }
+.week-pct { font-size:22px; font-weight:700; color:var(--blue); }
+.prog-bar-wrap { background:var(--bg2); border-radius:6px; height:7px; margin-bottom:12px; overflow:hidden; }
+.prog-bar { height:100%; border-radius:6px; background:linear-gradient(90deg,#007AFF,#5E5CE6); transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1); }
+.cat-rows { display:flex; flex-direction:column; gap:8px; }
+.cat-row  { display:flex; align-items:center; gap:10px; }
+.cat-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.cat-name { font-size:12px; color:var(--text2); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cat-bar-wrap { flex:2; background:var(--bg2); border-radius:4px; height:4px; overflow:hidden; }
+.cat-bar  { height:100%; border-radius:4px; transition:width 0.5s; }
+.cat-count { font-size:11px; color:var(--label); min-width:32px; text-align:right; }
+
+/* ═══ TREND CHART ═══ */
+.trend-section {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:14px 18px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.trend-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+#trendCanvas { width:100%; display:block; }
+
+/* ═══ QUICK ADD ═══ */
+.quickadd-card {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:13px 15px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.qa-row { display:flex; gap:8px; align-items:center; }
+.qa-input {
+  flex:1; border:1.5px solid var(--sep); border-radius:var(--radius-sm);
+  padding:10px 13px; font-size:14px; background:#FAFAFA; color:var(--text);
+  font-family:inherit; outline:none; transition:border-color 0.2s;
+}
+.qa-input:focus { border-color:var(--blue); background:#fff; }
+.qa-input::placeholder { color:var(--label); }
+.qa-meta { display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; align-items:center; }
+select, .fsel {
+  border:1px solid var(--sep); border-radius:var(--radius-xs);
+  padding:6px 8px; font-size:12px; background:#FAFAFA; color:var(--text);
+  font-family:inherit; outline:none; cursor:pointer;
+}
+select:focus { border-color:var(--blue); }
+
+/* ═══ BUTTONS ═══ */
+.btn {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:8px 15px; border-radius:var(--radius-sm); font-size:13px; font-weight:600;
+  border:none; cursor:pointer; font-family:inherit; transition:all 0.15s;
+}
+.btn:active { transform:scale(0.97); }
+.btn-primary  { background:var(--blue);  color:#fff; box-shadow:0 2px 8px rgba(0,122,255,0.28); }
+.btn-primary:hover  { filter:brightness(1.08); }
+.btn-secondary { background:var(--sep); color:var(--text); }
+.btn-secondary:hover { background:var(--bg2); }
+.btn-ghost  { background:transparent; color:var(--blue); padding:7px 9px; }
+.btn-ghost:hover  { background:rgba(0,122,255,0.08); }
+.btn-danger { background:rgba(255,59,48,0.1); color:var(--red); }
+.btn-danger:hover { background:rgba(255,59,48,0.18); }
+.btn-green  { background:rgba(52,199,89,0.12); color:#1a7a38; }
+.btn-green:hover  { background:rgba(52,199,89,0.2); }
+.btn-sm     { padding:5px 9px; font-size:11px; border-radius:7px; }
+
+/* ═══ FILTER CHIPS ═══ */
+.tasks-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+.filter-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.chip {
+  padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600;
+  cursor:pointer; border:1.5px solid transparent; transition:all 0.15s;
+  background:var(--card); color:var(--text3);
+}
+.chip:hover  { border-color:var(--blue); color:var(--blue); }
+.chip.active { background:rgba(0,122,255,0.1); color:var(--blue); border-color:var(--blue); }
+
+/* ═══ TASK CARDS ═══ */
+.task-group  { margin-bottom:18px; }
+.group-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--label); margin-bottom:7px; padding:0 3px; }
+
+.task-card {
+  background:var(--card); border:1px solid var(--sep); border-left:3px solid transparent;
+  border-radius:var(--radius-sm); padding:12px 14px; box-shadow:var(--shadow-sm);
+  margin-bottom:7px; display:flex; align-items:flex-start; gap:11px;
+  cursor:pointer; transition:all 0.18s;
+}
+.task-card:hover { box-shadow:var(--shadow); transform:translateY(-1px); }
+.task-card.done  { opacity:0.52; }
+.task-card.done .task-title { text-decoration:line-through; color:var(--label); }
+.task-card[data-priority="high"]   { border-left-color:var(--red); }
+.task-card[data-priority="medium"] { border-left-color:var(--orange); }
+.task-card[data-priority="low"]    { border-left-color:var(--green); }
+
+.task-check {
+  width:21px; height:21px; border-radius:50%; border:2px solid var(--sep);
+  background:transparent; cursor:pointer; flex-shrink:0; margin-top:1px;
+  display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.task-check:hover { border-color:var(--blue); background:rgba(0,122,255,0.07); }
+.task-check.checked { background:var(--green); border-color:var(--green); }
+.task-check.checked::after { content:''; display:block; width:5px; height:9px; border:2px solid #fff; border-top:none; border-left:none; transform:rotate(45deg) translateY(-1px); }
+
+.task-body  { flex:1; min-width:0; }
+.task-title { font-size:14px; font-weight:600; line-height:1.35; margin-bottom:4px; }
+.task-meta  { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.task-pai   { font-size:12px; color:var(--text3); margin-top:4px; line-height:1.5; }
+.task-pai span { color:var(--blue); font-weight:600; }
+.task-tools { margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; }
+.tool-tag {
+  font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;
+  background:rgba(94,92,230,0.1); color:var(--indigo); letter-spacing:0.3px;
+}
+
+/* ═══ BADGES ═══ */
+.badge {
+  display:inline-flex; align-items:center; gap:2px;
+  padding:2px 7px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:0.2px;
+}
+.badge-high   { background:rgba(255,59,48,0.1);   color:var(--red); }
+.badge-medium { background:rgba(255,149,0,0.1);    color:var(--orange); }
+.badge-low    { background:rgba(52,199,89,0.1);    color:var(--green); }
+.badge-inprogress { background:rgba(0,122,255,0.1); color:var(--blue); }
+.badge-done   { background:rgba(52,199,89,0.1);    color:var(--green); }
+.badge-cat    { background:rgba(0,0,0,0.05);       color:var(--text3); }
+.badge-risk-low    { background:rgba(52,199,89,0.1);  color:#1a7a38; }
+.badge-risk-medium { background:rgba(255,149,0,0.1);  color:var(--orange); }
+.badge-risk-high   { background:rgba(255,59,48,0.1);  color:var(--red); }
+.badge-aging       { background:rgba(255,149,0,0.1);  color:var(--orange); }
+.badge-highlight   { background:rgba(255,159,10,0.12); color:#9a6200; }
+.badge-effort      { background:rgba(94,92,230,0.08);  color:var(--indigo); }
+
+.task-due        { font-size:11px; color:var(--label); }
+.task-due.overdue { color:var(--red); font-weight:700; }
+
+/* ═══ MODAL ═══ */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,0.38); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center; padding:16px;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:#fff; border-radius:20px; width:100%; max-width:560px;
+  box-shadow:var(--shadow-lg); overflow:hidden;
+  animation:slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  max-height:94vh; display:flex; flex-direction:column;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(28px) scale(0.96)} to{opacity:1;transform:none} }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 12px; border-bottom:0.5px solid var(--sep); flex-shrink:0; }
+.modal-title  { font-size:16px; font-weight:700; }
+.modal-body   { padding:14px 20px; display:flex; flex-direction:column; gap:11px; overflow-y:auto; flex:1; }
+.modal-footer { padding:10px 20px 16px; display:flex; gap:7px; justify-content:flex-end; border-top:0.5px solid var(--sep); flex-shrink:0; }
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-label { font-size:10px; font-weight:800; color:var(--label); text-transform:uppercase; letter-spacing:0.6px; }
+.form-input {
+  border:1.5px solid var(--sep); border-radius:var(--radius-xs);
+  padding:8px 11px; font-size:13px; background:#FAFAFA; color:var(--text);
+  font-family:inherit; outline:none; transition:border-color 0.2s; width:100%;
+}
+.form-input:focus { border-color:var(--blue); background:#fff; }
+textarea.form-input { resize:vertical; min-height:54px; }
+.form-row2 { display:grid; grid-template-columns:1fr 1fr;     gap:9px; }
+.form-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
+.form-divider { border:none; border-top:0.5px solid var(--sep); margin:2px 0; }
+.section-hdr { font-size:11px; font-weight:800; color:var(--blue); text-transform:uppercase; letter-spacing:0.6px; }
+#m-blocked-reason-group { display:none; }
+.check-row { display:flex; align-items:center; gap:8px; }
+.check-row input[type=checkbox] { width:15px; height:15px; accent-color:var(--blue); cursor:pointer; flex-shrink:0; }
+.check-row label { font-size:13px; color:var(--text2); cursor:pointer; user-select:none; }
+
+/* ═══ ICON BTN ═══ */
+.icon-btn { width:28px; height:28px; border:none; background:transparent; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--label); font-size:14px; transition:all 0.14s; font-family:inherit; }
+.icon-btn:hover { background:var(--sep); color:var(--text); }
+
+/* ═══ TOOLS MULTI-SELECT ═══ */
+.tools-grid { display:flex; gap:6px; flex-wrap:wrap; }
+.tool-btn {
+  padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700;
+  border:1.5px solid var(--sep); background:#FAFAFA; color:var(--text3);
+  cursor:pointer; transition:all 0.14s; letter-spacing:0.2px;
+}
+.tool-btn.sel { background:rgba(94,92,230,0.1); border-color:var(--indigo); color:var(--indigo); }
+
+/* ═══ DAILY SNAPSHOT PANEL ═══ */
+.snapshot-panel {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:14px 16px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.snapshot-info { flex:1; }
+.snapshot-title { font-size:14px; font-weight:700; margin-bottom:2px; }
+.snapshot-sub   { font-size:12px; color:var(--label); }
+.snapshot-actions { display:flex; gap:7px; }
+
+/* Screenshot capture area */
+#capture-area {
+  background:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
+}
+.snap-header {
+  background:linear-gradient(135deg,#007AFF 0%,#5E5CE6 100%);
+  color:#fff; padding:16px 20px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.snap-header-title { font-size:17px; font-weight:700; }
+.snap-header-sub   { font-size:12px; opacity:0.8; margin-top:2px; }
+.snap-header-right { text-align:right; }
+.snap-header-pct   { font-size:28px; font-weight:700; line-height:1; }
+.snap-header-lbl   { font-size:11px; opacity:0.8; }
+.snap-body { padding:14px 16px; }
+.snap-stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+.snap-stat { background:#F5F5F7; border-radius:10px; padding:10px 12px; text-align:center; }
+.snap-stat-num { font-size:22px; font-weight:700; line-height:1; }
+.snap-stat-lbl { font-size:10px; color:#8E8E93; margin-top:2px; text-transform:uppercase; letter-spacing:0.3px; }
+.snap-section-title { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:#8E8E93; margin:10px 0 6px; padding-bottom:4px; border-bottom:1px solid #E5E5EA; }
+.snap-task { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:0.5px solid #F2F2F2; }
+.snap-task:last-child { border-bottom:none; }
+.snap-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.snap-task-title { font-size:13px; font-weight:500; line-height:1.35; flex:1; }
+.snap-task-impact { font-size:11px; color:#636366; margin-top:2px; }
+.snap-task-tools  { font-size:10px; color:#5E5CE6; margin-top:2px; font-weight:600; }
+.snap-badges { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+.snap-badge { font-size:10px; font-weight:700; padding:1px 6px; border-radius:20px; }
+.snap-footer { padding:10px 16px; background:#F5F5F7; display:flex; justify-content:space-between; align-items:center; }
+.snap-footer-lbl { font-size:11px; color:#8E8E93; }
+.snap-footer-date { font-size:11px; color:#8E8E93; }
+
+/* snapshot timeline */
+.snap-tl-wrap { margin-top:6px; padding:8px 10px; background:#F9F9FB; border-radius:8px; border-left:3px solid #E5E5EA; }
+.snap-tl-hdr  { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:#8E8E93; margin-bottom:5px; }
+.snap-tl-list { display:flex; flex-direction:column; gap:0; }
+.snap-tl-row  { display:flex; gap:0; position:relative; }
+.snap-tl-row::before { content:''; position:absolute; left:7px; top:15px; width:1px; bottom:0; background:#E5E5EA; }
+.snap-tl-row:last-child::before { display:none; }
+.snap-tl-left { flex-shrink:0; width:16px; display:flex; flex-direction:column; align-items:center; padding-top:3px; }
+.snap-tl-dot  { width:8px; height:8px; border-radius:50%; border:1.5px solid #fff; z-index:1; flex-shrink:0; }
+.snap-tl-body { flex:1; min-width:0; padding:0 0 7px 6px; }
+.snap-tl-meta { display:flex; align-items:center; gap:5px; margin-bottom:1px; flex-wrap:wrap; }
+.snap-tl-date { font-size:9px; font-weight:800; color:#3A3A3C; }
+.snap-tl-type { font-size:9px; font-weight:700; padding:1px 5px; border-radius:10px; }
+.snap-tl-desc { font-size:11px; color:#48484A; line-height:1.4; }
+
+/* ═══ REPORT TAB ═══ */
+.report-card {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.report-title    { font-size:20px; font-weight:800; letter-spacing:-0.4px; margin-bottom:2px; }
+.report-subtitle { font-size:13px; color:var(--label); margin-bottom:14px; }
+.summary-box {
+  background:linear-gradient(135deg,rgba(0,122,255,0.05),rgba(94,92,230,0.04));
+  border:1px solid rgba(0,122,255,0.12); border-radius:var(--radius-sm);
+  padding:13px 15px; margin-bottom:16px; font-size:13px; line-height:1.7; color:var(--text2);
+}
+.summary-box strong { color:var(--text); }
+.r-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
+.r-stat  { background:var(--bg2); border-radius:var(--radius-sm); padding:11px; text-align:center; }
+.r-stat-num { font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+.r-stat-lbl { font-size:10px; color:var(--label); margin-top:2px; }
+.report-section { margin-bottom:16px; }
+.report-sec-title { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--label); margin-bottom:8px; padding-bottom:5px; border-bottom:0.5px solid var(--sep); }
+.report-item { display:flex; align-items:flex-start; gap:9px; padding:8px 0; border-bottom:0.5px solid var(--sep); }
+.report-item:last-child { border-bottom:none; }
+.report-dot  { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:6px; }
+.report-text { font-size:13px; line-height:1.45; flex:1; }
+.report-sub  { font-size:11px; color:var(--label); margin-top:2px; }
+.report-meta { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+.report-badge { font-size:10px; font-weight:700; padding:2px 6px; border-radius:20px; }
+.highlight-item { background:rgba(255,159,10,0.05); border-left:3px solid var(--yellow); padding:9px 11px; border-radius:0 var(--radius-xs) var(--radius-xs) 0; margin-bottom:7px; }
+.highlight-item-title  { font-size:13px; font-weight:600; }
+.highlight-item-impact { font-size:11px; color:var(--text3); margin-top:2px; }
+.copy-report-btn { width:100%; justify-content:center; }
+.pai-block { background:rgba(0,122,255,0.04); border-radius:6px; padding:6px 9px; margin-top:4px; font-size:11px; line-height:1.6; color:var(--text2); }
+.pai-block b { color:var(--blue); }
+
+/* ═══ TIMELINE ═══ */
+.tl-wrap        { display:flex; flex-direction:column; gap:0; }
+.tl-entry       {
+  display:flex; gap:0; position:relative;
+}
+.tl-left        { display:flex; flex-direction:column; align-items:center; width:28px; flex-shrink:0; }
+.tl-dot         {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; z-index:1;
+  border:2px solid #fff; box-shadow:0 0 0 1.5px currentColor;
+}
+.tl-line        { width:2px; background:var(--sep); flex:1; min-height:8px; }
+.tl-entry:last-child .tl-line { display:none; }
+.tl-body        { flex:1; padding:0 0 14px 10px; min-width:0; }
+.tl-date-row    { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+.tl-date        { font-size:11px; font-weight:700; color:var(--text3); }
+.tl-type-badge  { font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px; }
+.tl-activity    { font-size:13px; line-height:1.45; color:var(--text2); }
+.tl-tools-row   { margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; }
+.tl-tool        { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; background:rgba(94,92,230,0.09); color:var(--indigo); }
+.tl-del-btn     { opacity:0; font-size:11px; color:var(--label); background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:4px; transition:opacity 0.15s; flex-shrink:0; }
+.tl-entry:hover .tl-del-btn { opacity:1; }
+.tl-del-btn:hover { background:rgba(255,59,48,0.1); color:var(--red); }
+.tl-add-row     { display:flex; flex-direction:column; gap:7px; background:var(--bg2); border-radius:var(--radius-xs); padding:10px; margin-top:4px; }
+.tl-add-row-top { display:flex; gap:7px; }
+.tl-add-row-bot { display:flex; gap:7px; align-items:center; }
+.tl-count-badge { font-size:10px; font-weight:700; padding:1px 6px; border-radius:20px; background:rgba(0,122,255,0.1); color:var(--blue); }
+
+/* Type colours */
+.tl-progress  { color:#007AFF; }
+.tl-blocker   { color:#FF3B30; }
+.tl-meeting   { color:#FF9500; }
+.tl-analysis  { color:#5856D6; }
+.tl-review    { color:#32ADE6; }
+.tl-done      { color:#34C759; }
+.tl-note      { color:#8E8E93; }
+
+/* ═══ SAVE / LOAD BAR ═══ */
+.savebar {
+  background:var(--card); border:var(--glass-border); border-radius:var(--radius);
+  padding:11px 16px; box-shadow:var(--shadow-sm); margin-bottom:12px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.savebar-left  { display:flex; align-items:center; gap:9px; flex:1; min-width:0; }
+.savebar-icon  {
+  width:32px; height:32px; border-radius:8px; background:rgba(52,199,89,0.1);
+  display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
+}
+.savebar-info  { min-width:0; }
+.savebar-title { font-size:13px; font-weight:700; }
+.savebar-sub   { font-size:11px; color:var(--label); margin-top:1px; }
+.savebar-right { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.autosave-dot  {
+  width:7px; height:7px; border-radius:50%; background:var(--green);
+  display:inline-block; margin-right:3px;
+  animation:pulse-dot 2.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%    { opacity:0.4; transform:scale(0.7); }
+}
+
+/* ═══ TIMELINE (inside modal) ═══ */
+.timeline-section {
+  border-top: 1.5px solid var(--sep); padding-top: 14px; margin-top: 2px;
+}
+.timeline-section-hdr {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.timeline-list { display: flex; flex-direction: column; gap: 0; }
+.tl-entry {
+  display: flex; gap: 0; position: relative;
+}
+/* vertical line */
+.tl-entry::before {
+  content: ''; position: absolute; left: 13px; top: 22px;
+  width: 1.5px; bottom: 0; background: var(--sep);
+}
+.tl-entry:last-child::before { display: none; }
+.tl-left {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0; width: 28px; padding-top: 3px;
+}
+.tl-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--card); box-shadow: 0 0 0 2px var(--sep);
+  flex-shrink: 0; z-index: 1;
+}
+.tl-body {
+  flex: 1; min-width: 0; padding: 0 0 14px 10px;
+}
+.tl-meta {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 3px;
+}
+.tl-date  { font-size: 11px; font-weight: 700; color: var(--text2); }
+.tl-type  { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; }
+.tl-desc  { font-size: 13px; color: var(--text2); line-height: 1.45; }
+.tl-tools { font-size: 10px; color: var(--indigo); font-weight: 700; margin-top: 2px; }
+.tl-del   { opacity: 0; width: 20px; height: 20px; border: none; background: transparent; cursor: pointer; color: var(--label); font-size: 12px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; transition: opacity 0.15s; }
+.tl-entry:hover .tl-del { opacity: 1; }
+.tl-del:hover { background: rgba(255,59,48,0.1); color: var(--red); }
+/* quick-add row */
+.tl-add-row {
+  display: grid; grid-template-columns: 110px 1fr;
+  gap: 6px; margin-top: 8px;
+}
+.tl-add-row2 { display: flex; gap: 6px; margin-top: 5px; }
+.tl-empty { font-size: 12px; color: var(--label); text-align: center; padding: 12px 0; font-style: italic; }
+/* badge on task card */
+.badge-tl { background: rgba(50,173,230,0.1); color: var(--teal); }
+
+/* ── Inline timeline panel on task card ── */
+.tl-toggle-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: rgba(50,173,230,0.1); color: var(--teal);
+  border: 1.5px solid transparent; cursor: pointer;
+  transition: all 0.15s; font-family: inherit; letter-spacing: 0.1px;
+}
+.tl-toggle-btn:hover { background: rgba(50,173,230,0.18); border-color: var(--teal); }
+.tl-toggle-btn.open  { background: rgba(50,173,230,0.15); border-color: var(--teal); }
+.tl-toggle-btn .tl-arrow { display: inline-block; transition: transform 0.2s; font-style: normal; }
+.tl-toggle-btn.open .tl-arrow { transform: rotate(180deg); }
+
+.card-timeline {
+  display: none; margin-top: 10px;
+  border-top: 1px dashed rgba(50,173,230,0.25);
+  padding-top: 10px;
+}
+.card-timeline.open { display: block; animation: fadeSlide 0.2s ease; }
+@keyframes fadeSlide { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+.card-tl-list { display: flex; flex-direction: column; gap: 0; }
+.card-tl-entry {
+  display: flex; gap: 0; position: relative;
+}
+.card-tl-entry::before {
+  content: ''; position: absolute; left: 10px; top: 18px;
+  width: 1.5px; bottom: 0; background: var(--sep);
+}
+.card-tl-entry:last-child::before { display: none; }
+.card-tl-left {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0; width: 22px; padding-top: 2px;
+}
+.card-tl-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1.5px var(--sep);
+  flex-shrink: 0; z-index: 1;
+}
+.card-tl-body  { flex: 1; min-width: 0; padding: 0 0 10px 8px; }
+.card-tl-meta  { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; flex-wrap: wrap; }
+.card-tl-date  { font-size: 10px; font-weight: 800; color: var(--text3); }
+.card-tl-type  { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px; }
+.card-tl-desc  { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.card-tl-empty { font-size: 12px; color: var(--label); font-style: italic; padding: 2px 0 4px 4px; }
+
+/* ═══ EMPTY ═══ */
+.empty { text-align:center; padding:40px 20px; color:var(--label); }
+.empty-icon { font-size:36px; margin-bottom:8px; }
+.empty-text { font-size:14px; font-weight:600; margin-bottom:3px; color:var(--text2); }
+.empty-sub  { font-size:12px; }
+
+/* ═══ TOAST ═══ */
+.toast {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(70px);
+  background:rgba(28,28,30,0.94); color:#fff;
+  padding:10px 18px; border-radius:22px; font-size:13px; font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:9999;
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:640px) {
+  .stats-row     { grid-template-columns:repeat(3,1fr); }
+  .week-day-strip{ grid-template-columns:repeat(5,1fr); }
+  .form-row2,.form-row3 { grid-template-columns:1fr; }
+  .r-stats       { grid-template-columns:repeat(2,1fr); }
+  .kbd-hints     { display:none; }
+}
+@media print {
+  .topbar,.week-nav,.week-day-strip,.quickadd-card,.tasks-header,.snapshot-panel,
+  .trend-section,.progress-section,.filter-chips,.btn-ghost { display:none!important; }
+}
+/* ═══ FIREBASE AUTH UI ═══ */
+#fb-setup-screen {
+  position:fixed; inset:0; z-index:9000; background:#F5F5F7;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.fb-setup-card {
+  background:#fff; border-radius:20px; width:100%; max-width:500px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.14); overflow:hidden;
+}
+.fb-setup-header {
+  background:linear-gradient(135deg,#007AFF,#5E5CE6);
+  padding:24px 28px; color:#fff;
+}
+.fb-setup-title { font-size:20px; font-weight:700; }
+.fb-setup-sub   { font-size:13px; opacity:0.85; margin-top:4px; line-height:1.5; }
+.fb-setup-body  { padding:24px 28px; display:flex; flex-direction:column; gap:14px; }
+.fb-step { display:flex; gap:12px; align-items:flex-start; }
+.fb-step-num {
+  width:24px; height:24px; border-radius:50%; background:var(--blue);
+  color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0; margin-top:1px;
+}
+.fb-step-text { font-size:13px; color:var(--text2); line-height:1.55; flex:1; }
+.fb-step-text a { color:var(--blue); font-weight:600; }
+.fb-config-input {
+  width:100%; border:1.5px solid var(--sep); border-radius:10px;
+  padding:10px 12px; font-size:12px; font-family:'Menlo','Monaco',monospace;
+  background:#FAFAFA; color:var(--text); outline:none; resize:vertical; min-height:120px;
+  transition:border-color 0.2s;
+}
+.fb-config-input:focus { border-color:var(--blue); }
+.fb-setup-footer { padding:0 28px 24px; display:flex; gap:8px; }
+
+/* User avatar in topbar */
+.user-avatar {
+  width:30px; height:30px; border-radius:50%; object-fit:cover;
+  border:2px solid rgba(255,255,255,0.6); cursor:pointer; flex-shrink:0;
+}
+.user-pill {
+  display:flex; align-items:center; gap:7px; padding:4px 10px 4px 4px;
+  background:var(--sep); border-radius:20px; cursor:pointer; transition:all 0.15s;
+}
+.user-pill:hover { background:var(--bg2); }
+.user-pill-name { font-size:12px; font-weight:600; color:var(--text2); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.login-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 13px; border-radius:20px; border:1.5px solid var(--sep);
+  background:#fff; cursor:pointer; font-size:13px; font-weight:600; color:var(--text);
+  transition:all 0.15s; font-family:inherit;
+}
+.login-btn:hover { background:var(--bg2); border-color:var(--blue); }
+.login-btn svg  { flex-shrink:0; }
+
+/* Collab modal */
+.collab-chip {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px; background:var(--bg2); border-radius:10px;
+}
+.collab-avatar {
+  width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.collab-info { flex:1; min-width:0; }
+.collab-name  { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.collab-email { font-size:11px; color:var(--label); }
+.collab-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+.sync-dot {
+  width:7px; height:7px; border-radius:50%; background:var(--green);
+  display:inline-block; margin-right:4px;
+  animation:pulse-dot 2.5s ease-in-out infinite;
+}
+.sync-dot.offline { background:var(--label); animation:none; }
+</style>
+<!-- Firebase SDK (loaded dynamically after config is entered) -->
+<script>
+// Firebase modules are imported after the user provides their config
+window._fbReady = false;
+</script>
+</head>
+<body>
+
+<!-- ══ FIREBASE SETUP SCREEN (hidden — config pre-configured) ══ -->
+<div id="fb-setup-screen" style="display:none"></div>
+
+<!-- ══ COLLAB MODAL ══ -->
+<div class="modal-overlay" id="collabModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title">👥 Collaboration</span>
+      <button class="icon-btn" onclick="closeModal('collabModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Workspace selector -->
+      <div style="display:flex;gap:6px;background:var(--sep);border-radius:10px;padding:3px">
+        <button id="wsMyBtn"     class="tab active" style="flex:1;border-radius:7px" onclick="switchWorkspace('mine')">My Workspace</button>
+        <button id="wsSharedBtn" class="tab"        style="flex:1;border-radius:7px" onclick="switchWorkspace('shared')">Shared With Me</button>
+      </div>
+      <!-- Sync status -->
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(52,199,89,0.06);border:1px solid rgba(52,199,89,0.15);border-radius:10px">
+        <span class="sync-dot" id="syncDot"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text2)" id="syncStatus">Syncing…</span>
+      </div>
+      <!-- Current user -->
+      <div id="collabCurrentUser" style="display:none">
+        <div class="form-label" style="margin-bottom:6px">Signed in as</div>
+        <div class="collab-chip">
+          <div class="collab-avatar" id="collabAvatarBig" style="width:36px;height:36px;font-size:14px"></div>
+          <div class="collab-info">
+            <div class="collab-name" id="collabUserName">—</div>
+            <div class="collab-email" id="collabUserEmail">—</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+      <!-- Collaborators list -->
+      <div>
+        <div class="form-label" style="margin-bottom:6px">Collaborators <span id="collabCount" style="font-weight:400;color:var(--label)"></span></div>
+        <div id="collabList" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <!-- Invite -->
+      <div>
+        <div class="form-label" style="margin-bottom:6px">Invite by Gmail Address</div>
+        <div style="display:flex;gap:7px">
+          <input class="form-input" id="inviteEmail" placeholder="colleague@gmail.com" type="email" style="flex:1"
+            onkeydown="if(event.key==='Enter')inviteCollaborator()">
+          <button class="btn btn-primary" onclick="inviteCollaborator()">Invite</button>
+        </div>
+        <div style="font-size:11px;color:var(--label);margin-top:5px;line-height:1.5">
+          Invitees can view and edit all tasks in your workspace. They must sign in with Google.
+        </div>
+      </div>
+      <!-- Workspace link -->
+      <div style="border-top:0.5px solid var(--sep);padding-top:12px">
+        <div class="form-label" style="margin-bottom:6px">Your Workspace ID</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <code style="flex:1;font-size:11px;background:var(--bg2);padding:6px 9px;border-radius:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="wsIdDisplay">—</code>
+          <button class="btn btn-secondary btn-sm" onclick="copyWorkspaceId()">⎘ Copy</button>
+        </div>
+        <div style="font-size:11px;color:var(--label);margin-top:5px">Share this ID so a collaborator can join your workspace directly.</div>
+        <div style="display:flex;gap:7px;margin-top:8px">
+          <input class="form-input" id="joinWsId" placeholder="Paste a workspace ID to join" style="flex:1">
+          <button class="btn btn-secondary" onclick="joinWorkspace()">Join</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('collabModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER MENU MODAL ══ -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-header">
+      <span class="modal-title">Account</span>
+      <button class="icon-btn" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:10px">
+      <div class="collab-chip">
+        <img id="um-avatar" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;display:none">
+        <div class="collab-avatar" id="um-initials" style="width:40px;height:40px;font-size:16px"></div>
+        <div class="collab-info">
+          <div class="collab-name" id="um-name">—</div>
+          <div class="collab-email" id="um-email">—</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="openCollabModal()">👥 Manage Collaboration</button>
+      <button class="btn btn-danger"    style="width:100%;justify-content:center" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOP BAR ══ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="app-icon">📊</div>
+    <div>
+      <div class="app-title">WeekFlow <span style="font-weight:400;color:var(--label);font-size:13px">— Data Analyst</span></div>
+      <div class="app-sub" id="weekLabel">Week of —</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="kbd-hints">
+      <span class="kh"><span class="k">N</span>New</span>
+      <span class="kh"><span class="k">D</span>Done</span>
+      <span class="kh"><span class="k">R</span>Report</span>
+      <span class="kh"><span class="k">S</span>Snap</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('tasks')">Tasks</button>
+      <button class="tab"        onclick="switchTab('report')">Weekly Report</button>
+    </div>
+    <!-- Auth UI (filled by JS) -->
+    <div id="authArea">
+      <span style="font-size:12px;color:var(--label)">🔥 Connecting…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- ═══ TASKS TAB ═══ -->
+  <div id="tab-tasks">
+
+    <!-- Week Navigation -->
+    <div class="week-nav">
+      <button class="nav-btn" onclick="shiftWeek(-1)" title="Previous week">‹</button>
+      <div class="week-nav-center">
+        <div class="week-nav-title" id="wn-title">—</div>
+        <div class="week-nav-sub"   id="wn-sub">Loading…</div>
+      </div>
+      <button class="nav-btn" onclick="shiftWeek(1)"  title="Next week">›</button>
+    </div>
+
+    <!-- Day Strip (Mon–Fri) -->
+    <div class="week-day-strip" id="dayStrip"></div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-total"      style="color:var(--blue)">0</div>
+        <div class="stat-label">Total</div>
+        <div class="stat-sub">this week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-done"        style="color:var(--green)">0</div>
+        <div class="stat-label">Done</div>
+        <div class="stat-sub" id="stat-pct">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-inp"         style="color:var(--orange)">0</div>
+        <div class="stat-label">In Progress</div>
+        <div class="stat-sub">active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-blocked"     style="color:var(--red)">0</div>
+        <div class="stat-label">Blocked</div>
+        <div class="stat-sub">need help</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-timesaved"   style="color:var(--purple)">0m</div>
+        <div class="stat-label">Time Saved</div>
+        <div class="stat-sub">this week</div>
+      </div>
+    </div>
+
+    <!-- Progress + Categories -->
+    <div class="progress-section">
+      <div class="prog-header">
+        <span class="section-title">Weekly Progress</span>
+        <span class="week-pct" id="weekPct">0%</span>
+      </div>
+      <div class="prog-bar-wrap"><div class="prog-bar" id="weekBar" style="width:0%"></div></div>
+      <div class="cat-rows" id="catRows"></div>
+    </div>
+
+    <!-- Trend Chart -->
+    <div class="trend-section">
+      <div class="trend-hdr">
+        <span class="section-title" style="font-size:13px">Completed — Last 6 Weeks</span>
+        <span style="font-size:11px;color:var(--label)" id="trendAvg"></span>
+      </div>
+      <canvas id="trendCanvas" height="80"></canvas>
+    </div>
+
+    <!-- ══ SAVE / LOAD / RESUME BAR ══ -->
+    <div class="savebar">
+      <div class="savebar-left">
+        <div class="savebar-icon">💾</div>
+        <div class="savebar-info">
+          <div class="savebar-title"><span class="autosave-dot"></span>Auto-saved to browser</div>
+          <div class="savebar-sub" id="lastSavedLabel">Last saved: —</div>
+        </div>
+      </div>
+      <div class="savebar-right">
+        <button class="btn btn-green btn-sm"     onclick="exportData()">⬇ Export Backup</button>
+        <button class="btn btn-secondary btn-sm" onclick="triggerImport()">⬆ Import / Resume</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSaveModal()">📂 Manage Saves</button>
+      </div>
+    </div>
+    <!-- Hidden file input for import -->
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+
+    <!-- Daily Snapshot / Screenshot -->
+    <div class="snapshot-panel">
+      <div class="snapshot-info">
+        <div class="snapshot-title">📸 Daily Progress Snapshot</div>
+        <div class="snapshot-sub">Generate a clean image to share with your manager</div>
+      </div>
+      <div class="snapshot-actions">
+        <button class="btn btn-secondary btn-sm" id="collabBtn" onclick="openCollabModal()" style="display:none">👥 Collaborate</button>
+        <button class="btn btn-green btn-sm" onclick="generateSnapshot()">📸 Capture Snapshot</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyReport()">⎘ Copy Report</button>
+      </div>
+    </div>
+
+    <!-- Quick Add -->
+    <div class="quickadd-card">
+      <div class="qa-row">
+        <input class="qa-input" id="quickTitle" placeholder="Add a task… (Enter to add)" onkeydown="if(event.key==='Enter')quickAdd()">
+        <button class="btn btn-primary" onclick="quickAdd()">+ Add</button>
+        <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="openNewModal()">+ Detailed</button>
+      </div>
+      <div class="qa-meta">
+        <select id="quickCat"><option value="">📁 Category</option></select>
+        <select id="quickPriority">
+          <option value="high">🔴 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <select id="quickStatus">
+          <option value="todo">○ Todo</option>
+          <option value="in_progress">◐ In Progress</option>
+          <option value="blocked">⛔ Blocked</option>
+        </select>
+        <input type="date" id="quickDue" class="fsel">
+        <button class="btn btn-ghost btn-sm" onclick="openCatModal()">⊕ Categories</button>
+      </div>
+    </div>
+
+    <!-- Filter + List -->
+    <div class="tasks-header">
+      <div class="filter-chips" id="filterChips">
+        <button class="chip active" onclick="setFilter('all',this)">All</button>
+        <button class="chip" onclick="setFilter('todo',this)">Todo</button>
+        <button class="chip" onclick="setFilter('in_progress',this)">In Progress</button>
+        <button class="chip" onclick="setFilter('blocked',this)">Blocked</button>
+        <button class="chip" onclick="setFilter('done',this)">Done</button>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="filterDay=null;renderTasks()" id="clearDayBtn" style="display:none">✕ Day Filter</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearDone()">Clear Done</button>
+      </div>
+    </div>
+
+    <div id="taskList"></div>
+  </div>
+
+  <!-- ═══ REPORT TAB ═══ -->
+  <div id="tab-report" style="display:none">
+    <div class="report-card">
+      <div class="report-title">Weekly Status Report</div>
+      <div class="report-subtitle" id="reportDateRange">—</div>
+      <div class="summary-box" id="r-summary">—</div>
+      <div class="r-stats">
+        <div class="r-stat"><div class="r-stat-num" id="r-done"      style="color:var(--green)">0</div><div class="r-stat-lbl">Completed</div></div>
+        <div class="r-stat"><div class="r-stat-num" id="r-inp"       style="color:var(--blue)">0</div><div class="r-stat-lbl">In Progress</div></div>
+        <div class="r-stat"><div class="r-stat-num" id="r-blocked"   style="color:var(--red)">0</div><div class="r-stat-lbl">Blocked</div></div>
+        <div class="r-stat"><div class="r-stat-num" id="r-tsaved"    style="color:var(--purple)">0m</div><div class="r-stat-lbl">Time Saved</div></div>
+      </div>
+      <div id="r-highlights"></div>
+      <div id="r-sec-done"></div>
+      <div id="r-sec-inp"></div>
+      <div id="r-sec-blocked"></div>
+      <div id="r-sec-todo"></div>
+      <div id="r-sec-nextweek"></div>
+      <button class="btn btn-secondary copy-report-btn" onclick="copyReport()">⎘ Copy for Manager</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">New Task</span>
+      <button class="icon-btn" onclick="closeModal('taskModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Basic -->
+      <div class="form-group">
+        <label class="form-label">Task Title</label>
+        <input class="form-input" id="m-title" placeholder="What needs to be done?">
+      </div>
+
+      <!-- PAI Framework -->
+      <div class="section-hdr">Problem → Action → Impact</div>
+      <div class="form-group">
+        <label class="form-label">🔍 Problem</label>
+        <input class="form-input" id="m-problem" placeholder="e.g. Sales dashboard loading slowly due to unoptimized SQL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">⚙️ Action Taken</label>
+        <input class="form-input" id="m-action" placeholder="e.g. Rewrote query with indexed joins and CTEs">
+      </div>
+      <div class="form-group">
+        <label class="form-label">📈 Impact / Outcome</label>
+        <input class="form-input" id="m-impact" placeholder="e.g. Query time reduced from 9 min to 40 sec">
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- Tools Used -->
+      <div class="form-group">
+        <label class="form-label">🛠 Tools Used</label>
+        <div class="tools-grid" id="toolsGrid"></div>
+        <input class="form-input" id="m-tools-custom" placeholder="Other tools (comma separated)" style="margin-top:6px">
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="m-notes" placeholder="Additional context…"></textarea>
+      </div>
+
+      <!-- Cat + Priority + Risk -->
+      <div class="form-row3">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="m-cat" style="padding:8px 9px"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-input" id="m-priority" style="padding:8px 9px">
+            <option value="high">🔴 High</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">⚠️ Risk</label>
+          <select class="form-input" id="m-risk" style="padding:8px 9px">
+            <option value="">—</option>
+            <option value="low">🟢 Low</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Status + Due + Effort -->
+      <div class="form-row3">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="m-status" style="padding:8px 9px" onchange="toggleBlockedField(this.value)">
+            <option value="todo">○ Todo</option>
+            <option value="in_progress">◐ In Progress</option>
+            <option value="blocked">⛔ Blocked</option>
+            <option value="done">✓ Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input type="date" class="form-input" id="m-due" style="padding:8px 9px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">⏱ Effort</label>
+          <select class="form-input" id="m-effort" style="padding:8px 9px">
+            <option value="">—</option>
+            <option value="15m">15 min</option>
+            <option value="30m">30 min</option>
+            <option value="1h">1 hour</option>
+            <option value="2h">2 hours</option>
+            <option value="4h">4 hours</option>
+            <option value="1d">1 day</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Blocked Reason -->
+      <div class="form-group" id="m-blocked-reason-group">
+        <label class="form-label">⛔ Blocked Reason</label>
+        <input class="form-input" id="m-blocked-reason" placeholder="e.g. Waiting for data access from BI team">
+      </div>
+
+      <!-- Time Saved + Highlight -->
+      <div class="form-row2">
+        <div class="form-group">
+          <label class="form-label">⚡ Time Saved (minutes)</label>
+          <input type="number" class="form-input" id="m-timesaved" placeholder="0" min="0" style="padding:8px 11px">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+          <div class="check-row">
+            <input type="checkbox" id="m-highlight">
+            <label for="m-highlight">⭐ Highlight for Report</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ACTIVITY TIMELINE ── -->
+      <div class="timeline-section" id="timelineSection">
+        <div class="timeline-section-hdr">
+          <span class="section-hdr" style="font-size:11px">📍 Activity Timeline</span>
+          <span style="font-size:11px;color:var(--label)" id="tlCount">0 entries</span>
+        </div>
+
+        <!-- Existing entries -->
+        <div class="timeline-list" id="tlList"></div>
+
+        <!-- Add new entry -->
+        <div class="tl-add-row">
+          <input type="date" class="form-input" id="tl-date" style="padding:7px 9px;font-size:12px">
+          <select class="form-input" id="tl-type" style="padding:7px 9px;font-size:12px">
+            <option value="note">📝 Note</option>
+            <option value="started">🚀 Started</option>
+            <option value="analysis">🔍 Analysis</option>
+            <option value="data_pull">🗄 Data Pull</option>
+            <option value="sql_query">💾 SQL / Query</option>
+            <option value="visualization">📊 Visualization</option>
+            <option value="review">👁 Review</option>
+            <option value="blocker">⛔ Blocker Hit</option>
+            <option value="resolved">✅ Resolved</option>
+            <option value="delivered">🎯 Delivered</option>
+          </select>
+        </div>
+        <div class="tl-add-row2">
+          <input class="form-input" id="tl-desc" placeholder="Describe what was done…" style="flex:1;padding:7px 10px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();addTimelineEntry();}">
+          <button class="btn btn-primary btn-sm" onclick="addTimelineEntry()">+ Add</button>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger"    onclick="deleteTask(currentEditId)" id="deleteBtn">Delete</button>
+      <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Manage Categories</span>
+      <button class="icon-btn" onclick="closeModal('catModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="catList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:7px">
+        <input class="form-input" id="newCatName" placeholder="Category name" style="flex:1">
+        <input type="color" id="newCatColor" value="#007AFF"
+          style="width:42px;height:38px;border:1.5px solid var(--sep);border-radius:8px;cursor:pointer;padding:3px">
+        <button class="btn btn-primary" onclick="addCategory()">Add</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('catModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- SNAPSHOT MODAL -->
+<div class="modal-overlay" id="snapModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">📸 Daily Progress Snapshot</span>
+      <button class="icon-btn" onclick="closeModal('snapModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;gap:0">
+      <div id="capture-area"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('snapModal')">Close</button>
+      <button class="btn btn-green"     onclick="downloadSnapshot()">⬇ Download PNG</button>
+      <button class="btn btn-primary"   onclick="copySnapshotText()">⎘ Copy Text</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE MANAGER MODAL -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">💾 Save Manager</span>
+      <button class="icon-btn" onclick="closeModal('saveModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Auto-save status -->
+      <div style="background:rgba(52,199,89,0.07);border:1px solid rgba(52,199,89,0.2);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">✅</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a7a38">Browser Auto-Save Active</div>
+          <div style="font-size:11px;color:var(--label);margin-top:1px" id="autoSaveStatus">Every change is saved automatically</div>
+        </div>
+      </div>
+      <!-- Named slots -->
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--label);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Quick Save Slots</div>
+        <div id="saveSlotList" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+      <!-- Save to new slot -->
+      <div style="display:flex;gap:7px">
+        <input class="form-input" id="saveSlotName" placeholder="Save name (e.g. Week 3 Review)" style="flex:1">
+        <button class="btn btn-primary" onclick="saveToSlot()">Save</button>
+      </div>
+      <!-- Export / Import -->
+      <div style="border-top:0.5px solid var(--sep);padding-top:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--label);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">File Backup</div>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-green" style="flex:1;justify-content:center" onclick="exportData()">⬇ Export .json Backup</button>
+          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="triggerImport()">⬆ Import / Resume</button>
+        </div>
+        <div style="font-size:11px;color:var(--label);margin-top:7px;line-height:1.5">Export saves all tasks &amp; categories to a <strong>.json</strong> file. Import it on any browser to fully resume your work.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('saveModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA ANALYST TOOLS PALETTE
+// ═══════════════════════════════════════════════════
+const DA_TOOLS = [
+  'SQL','Python','R','Excel','Tableau','Power BI','Looker','Google Sheets',
+  'BigQuery','Snowflake','dbt','Pandas','NumPy','Matplotlib','Seaborn',
+  'Spark','Airflow','Jupyter','VS Code','Git','Jira','Confluence','Slack'
+];
+
+// Data Analyst categories
+const DEFAULT_CATS = [
+  { id:'c1', name:'Data Cleaning',     color:'#007AFF' },
+  { id:'c2', name:'Analysis',          color:'#5856D6' },
+  { id:'c3', name:'Visualization',     color:'#FF9500' },
+  { id:'c4', name:'Reporting',         color:'#34C759' },
+  { id:'c5', name:'Pipeline / ETL',    color:'#FF3B30' },
+  { id:'c6', name:'Stakeholder Comm.', color:'#32ADE6' },
+  { id:'c7', name:'Modelling',         color:'#FF2D55' },
+  { id:'c8', name:'Ad-hoc Requests',   color:'#FF9F0A' },
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let tasks         = [];
+let categories    = JSON.parse(JSON.stringify(DEFAULT_CATS));
+let currentFilter = 'all';
+let currentEditId = null;
+let activeTab     = 'tasks';
+let weekOffset    = 0;   // 0 = current week
+let filterDay     = null; // null = all days, or 'Mon'/'Tue' etc
+let selectedTools = [];   // tools selected in modal
+
+const SK  = 'wf_tasks2';
+const CK  = 'wf_cats2';
+const TRK = 'wf_trend2';
+
+// ═══════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════
+// NOTE: enhanced save() with timestamp is defined in the SAVE/LOAD section below
+function load() {
+  try {
+    const t = localStorage.getItem(SK);
+    const c = localStorage.getItem(CK);
+    if (t) tasks      = JSON.parse(t);
+    if (c) categories = JSON.parse(c);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// WEEK UTILS
+// ═══════════════════════════════════════════════════
+function getWeekRange(off) {
+  off = off === undefined ? weekOffset : off;
+  const now = new Date();
+  const day = now.getDay();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - (day===0?6:day-1) + off*7);
+  mon.setHours(0,0,0,0);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+  return { mon, sun };
+}
+function fmtDate(d) { return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtFull(d) { return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
+function isPast(ds) {
+  if (!ds) return false;
+  const d = new Date(ds+'T00:00:00'); const t = new Date(); t.setHours(0,0,0,0);
+  return d < t;
+}
+function daysOpen(ca) { return Math.floor((Date.now()-new Date(ca))/86400000); }
+function isDueNextWeek(ds) {
+  if (!ds) return false;
+  const {mon,sun} = getWeekRange(weekOffset+1);
+  const d = new Date(ds+'T00:00:00');
+  return d>=mon && d<=sun;
+}
+function dayName(d) { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]; }
+function getWeekDays() {
+  const { mon } = getWeekRange();
+  return Array.from({length:5}, (_,i) => { const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+}
+function taskDayName(t) {
+  const d = t.dueDate ? new Date(t.dueDate+'T00:00:00') : null;
+  return d ? dayName(d) : null;
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+function init() {
+  load();
+  updateLastSavedLabel(localStorage.getItem(LAST_SAVED_KEY));
+  renderWeekHeader();
+  renderDayStrip();
+  document.getElementById('quickDue').value = new Date().toISOString().split('T')[0];
+  renderAll();
+  buildToolsGrid();
+  saveTrend();
+  initKeyboard();
+  initFirebase(); // Firebase auth + sync
+}
+
+function renderWeekHeader() {
+  const {mon,sun} = getWeekRange();
+  const label = weekOffset===0 ? 'This Week' : weekOffset===-1 ? 'Last Week' : weekOffset===1 ? 'Next Week' : `Week ${weekOffset>0?'+':''}${weekOffset}`;
+  document.getElementById('weekLabel').textContent  = `Week of ${fmtDate(mon)} – ${fmtDate(sun)}`;
+  document.getElementById('wn-title').textContent   = label;
+  document.getElementById('wn-sub').textContent     = `${fmtDate(mon)} — ${fmtDate(sun)}`;
+  document.getElementById('reportDateRange').textContent = `${fmtDate(mon)} – ${fmtDate(sun)}`;
+}
+
+function renderDayStrip() {
+  const days = getWeekDays();
+  const strip = document.getElementById('dayStrip');
+  strip.innerHTML = days.map(d => {
+    const dn   = dayName(d);
+    const cnt  = tasks.filter(t => taskDayName(t)===dn && isInCurrentWeek(t)).length;
+    const done = tasks.filter(t => taskDayName(t)===dn && isInCurrentWeek(t) && t.status==='done').length;
+    const isActive = filterDay===dn;
+    return `<div class="day-pill${isActive?' active':''}" onclick="toggleDayFilter('${dn}')">
+      <div class="dp-name">${dn}</div>
+      <div class="dp-date">${d.getDate()}</div>
+      <div class="dp-count">${done}/${cnt}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDayFilter(dn) {
+  filterDay = filterDay===dn ? null : dn;
+  document.getElementById('clearDayBtn').style.display = filterDay ? 'inline-flex':'none';
+  renderDayStrip();
+  renderTasks();
+}
+
+function shiftWeek(dir) {
+  weekOffset += dir;
+  filterDay = null;
+  document.getElementById('clearDayBtn').style.display = 'none';
+  renderWeekHeader();
+  renderDayStrip();
+  renderAll();
+}
+
+function isInCurrentWeek(t) {
+  // A task belongs to the displayed week if its dueDate is in that week
+  // OR if it has no dueDate but was created in that week
+  const {mon,sun} = getWeekRange();
+  if (t.dueDate) {
+    const d = new Date(t.dueDate+'T00:00:00');
+    return d>=mon && d<=sun;
+  }
+  const c = new Date(t.createdAt||Date.now());
+  return c>=mon && c<=sun;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  renderCatSelects();
+  renderStats();
+  renderProgress();
+  renderTrendChart();
+  renderTasks();
+  if (activeTab==='report') renderReport();
+}
+
+function renderCatSelects() {
+  const opts = categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('quickCat').innerHTML = `<option value="">📁 Category</option>`+opts;
+  document.getElementById('m-cat').innerHTML    = `<option value="">No Category</option>`+opts;
+}
+
+function renderStats() {
+  const wt  = tasks.filter(t => isInCurrentWeek(t));
+  const done = wt.filter(t=>t.status==='done').length;
+  const inp  = wt.filter(t=>t.status==='in_progress').length;
+  const bl   = wt.filter(t=>t.status==='blocked').length;
+  const tot  = wt.length;
+  const pct  = tot ? Math.round(done/tot*100) : 0;
+  const ts   = wt.filter(t=>t.status==='done').reduce((a,t)=>a+(t.timeSaved||0),0);
+  document.getElementById('stat-total').textContent    = tot;
+  document.getElementById('stat-done').textContent     = done;
+  document.getElementById('stat-pct').textContent      = pct+'% done';
+  document.getElementById('stat-inp').textContent      = inp;
+  document.getElementById('stat-blocked').textContent  = bl;
+  document.getElementById('stat-timesaved').textContent= ts>=60?Math.round(ts/60)+'h':ts+'m';
+}
+
+function renderProgress() {
+  const wt   = tasks.filter(t=>isInCurrentWeek(t));
+  const done = wt.filter(t=>t.status==='done').length;
+  const tot  = wt.length;
+  const pct  = tot ? Math.round(done/tot*100) : 0;
+  document.getElementById('weekPct').textContent  = pct+'%';
+  document.getElementById('weekBar').style.width  = pct+'%';
+  document.getElementById('catRows').innerHTML = categories.map(cat=>{
+    const ct  = wt.filter(t=>t.catId===cat.id);
+    const cd  = ct.filter(t=>t.status==='done').length;
+    const cp  = ct.length ? Math.round(cd/ct.length*100) : 0;
+    return `<div class="cat-row">
+      <div class="cat-dot" style="background:${cat.color}"></div>
+      <span class="cat-name">${cat.name}</span>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${cp}%;background:${cat.color}"></div></div>
+      <span class="cat-count">${cd}/${ct.length}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// TREND CHART
+// ═══════════════════════════════════════════════════
+function getWeekKey(off) {
+  const {mon} = getWeekRange(off);
+  return mon.toISOString().split('T')[0];
+}
+function saveTrend() {
+  try {
+    const tr = JSON.parse(localStorage.getItem(TRK)||'{}');
+    tr[getWeekKey(0)] = tasks.filter(t=>t.status==='done').length;
+    localStorage.setItem(TRK,JSON.stringify(tr));
+  } catch(e) {}
+}
+function renderTrendChart() {
+  let tr = {};
+  try { tr = JSON.parse(localStorage.getItem(TRK)||'{}'); } catch(e) {}
+  const labels=[], data=[];
+  for (let i=-5;i<=0;i++) {
+    const key = getWeekKey(i);
+    labels.push(fmtDate(new Date(key+'T00:00:00')));
+    data.push(tr[key]||0);
+  }
+  data[5] = tasks.filter(t=>t.status==='done').length;
+  const avg = data.reduce((a,b)=>a+b,0)/6;
+  document.getElementById('trendAvg').textContent = `avg ${Math.round(avg)}/wk`;
+  const canvas = document.getElementById('trendCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1, W=canvas.offsetWidth, H=80;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  const pL=28,pR=8,pT=8,pB=20,cW=W-pL-pR,cH=H-pT-pB;
+  const maxV=Math.max(...data,1);
+  const pts = data.map((v,i)=>({x:pL+(i/5)*cW, y:pT+cH-(v/maxV)*cH}));
+  // grid
+  ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1;
+  [0,0.5,1].forEach(f=>{ const y=pT+cH*(1-f); ctx.beginPath(); ctx.moveTo(pL,y); ctx.lineTo(pL+cW,y); ctx.stroke(); });
+  // fill
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pT+cH);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[5].x,pT+cH); ctx.closePath();
+  ctx.fillStyle='rgba(0,122,255,0.08)'; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle='#007AFF'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+  pts.forEach((p,i)=>{
+    ctx.beginPath(); ctx.arc(p.x,p.y,i===5?4:2.5,0,Math.PI*2);
+    ctx.fillStyle='#007AFF'; ctx.fill();
+    if(data[i]>0){ ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.font='10px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(data[i],p.x,p.y-5); }
+    ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.font='10px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(labels[i],p.x,H-4);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// TASK RENDERING — HIGH PRIORITY FIRST
+// ═══════════════════════════════════════════════════
+const PRIORITY_RANK = { high:0, medium:1, low:2 };
+
+function sortTasks(arr) {
+  // High priority first, then by status priority, then by due date
+  const statusRank = { blocked:0, in_progress:1, todo:2, done:3 };
+  return [...arr].sort((a,b) => {
+    if (statusRank[a.status] !== statusRank[b.status]) return statusRank[a.status]-statusRank[b.status];
+    const pa = PRIORITY_RANK[a.priority]??1, pb = PRIORITY_RANK[b.priority]??1;
+    if (pa!==pb) return pa-pb;
+    if (a.dueDate && b.dueDate) return new Date(a.dueDate)-new Date(b.dueDate);
+    return 0;
+  });
+}
+
+function renderTasks() {
+  renderDayStrip();
+  const list = document.getElementById('taskList');
+  let filtered = tasks.filter(t => isInCurrentWeek(t));
+
+  // Day filter
+  if (filterDay) filtered = filtered.filter(t => taskDayName(t)===filterDay);
+  // Status filter
+  if (currentFilter!=='all') filtered = filtered.filter(t=>t.status===currentFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">${filterDay?'No tasks on '+filterDay : currentFilter==='all'?'No tasks this week':'No '+currentFilter.replace('_',' ')+' tasks'}</div>
+      <div class="empty-sub">Add a task above or press <strong>N</strong></div>
+    </div>`; return;
+  }
+
+  const sorted = sortTasks(filtered);
+
+  if (currentFilter!=='all' || filterDay) {
+    list.innerHTML = sorted.map(taskHTML).join(''); return;
+  }
+
+  // Group by status
+  const ORDER  = ['blocked','in_progress','todo','done'];
+  const LABELS = {blocked:'⛔ Blocked',in_progress:'◐ In Progress',todo:'○ To Do',done:'✓ Completed'};
+  list.innerHTML = ORDER.map(status => {
+    const grp = sortTasks(filtered.filter(t=>t.status===status));
+    if (!grp.length) return '';
+    return `<div class="task-group">
+      <div class="group-label">${LABELS[status]} <span style="opacity:0.6;font-weight:400">${grp.length}</span></div>
+      ${grp.map(taskHTML).join('')}
+    </div>`;
+  }).join('');
+}
+
+function taskHTML(t) {
+  const cat    = categories.find(c=>c.id===t.catId);
+  const done   = t.status==='done';
+  const over   = !done && isPast(t.dueDate);
+  const age    = daysOpen(t.createdAt||new Date().toISOString());
+  const aging  = !done && age>=5;
+  const tools  = (t.tools||[]);
+  const tl     = (t.timeline||[]);
+
+  const catB   = cat ? `<span class="badge badge-cat" style="background:${cat.color}18;color:${cat.color}">${cat.name}</span>` : '';
+  const priB   = t.priority ? `<span class="badge badge-${t.priority}">${t.priority}</span>` : '';
+  const riskB  = t.risk ? `<span class="badge badge-risk-${t.risk}">⚠️ ${t.risk}</span>` : '';
+  const effB   = t.effort ? `<span class="badge badge-effort">⏱ ${t.effort}</span>` : '';
+  const hlB    = t.highlight ? `<span class="badge badge-highlight">⭐</span>` : '';
+  const impB   = t.impact ? `<span class="badge" style="background:rgba(52,199,89,0.1);color:#1a7a38">📈</span>` : '';
+  const ageB   = aging ? `<span class="badge badge-aging">🟠 ${age}d</span>` : '';
+  const stB    = t.status==='blocked' ? `<span class="badge" style="background:rgba(255,59,48,0.1);color:var(--red)">Blocked</span>` :
+                 t.status==='in_progress' ? `<span class="badge badge-inprogress">In Progress</span>` : '';
+  const dueS   = t.dueDate ? `<span class="task-due${over?' overdue':''}">📅 ${over?'Overdue ':''}${fmtDate(new Date(t.dueDate+'T00:00:00'))}</span>` : '';
+
+  // Timeline toggle button — always show if task has entries, show "+" hint if none
+  const tlBtn  = `<button class="tl-toggle-btn" id="tlbtn-${t.id}"
+      onclick="event.stopPropagation();toggleTaskTimeline('${t.id}')"
+      title="${tl.length ? 'Show / hide activity timeline' : 'No timeline entries yet'}">
+    📍 ${tl.length ? tl.length + ' activit' + (tl.length===1?'y':'ies') : '+ Timeline'}
+    <i class="tl-arrow">▾</i>
+  </button>`;
+
+  const paiLine = (t.problem||t.action||t.impact) ? `<div class="task-pai">
+    ${t.problem?`<span>P:</span> ${escHtml(t.problem.substring(0,60))}${t.problem.length>60?'…':''} `:''}
+    ${t.action?`<span>A:</span> ${escHtml(t.action.substring(0,60))}${t.action.length>60?'…':''} `:''}
+    ${t.impact?`<span>I:</span> ${escHtml(t.impact.substring(0,60))}${t.impact.length>60?'…':''}`:''}
+  </div>` : '';
+
+  const toolsLine = tools.length ? `<div class="task-tools">${tools.map(x=>`<span class="tool-tag">${escHtml(x)}</span>`).join('')}</div>` : '';
+
+  // Build the inline timeline panel (hidden by default)
+  const tlPanel = buildCardTimeline(t.id, tl);
+
+  return `<div class="task-card${done?' done':''}" data-priority="${t.priority||''}" id="tcard-${t.id}" onclick="openEditModal('${t.id}')">
+    <div class="task-check${done?' checked':''}" onclick="event.stopPropagation();toggleDone('${t.id}')"></div>
+    <div class="task-body">
+      <div class="task-title">${escHtml(t.title)}</div>
+      <div class="task-meta">${catB}${priB}${riskB}${effB}${stB}${hlB}${impB}${dueS}${ageB}</div>
+      ${paiLine}
+      ${toolsLine}
+      <div class="task-meta" style="margin-top:6px">${tlBtn}</div>
+      ${tlPanel}
+    </div>
+  </div>`;
+}
+
+function buildCardTimeline(taskId, tl) {
+  // Sorted oldest → newest for the inline panel
+  const sorted = [...tl].sort((a,b) => new Date(a.date)-new Date(b.date));
+  const entries = sorted.length
+    ? sorted.map(e => {
+        const meta    = TL_TYPE_META[e.type] || TL_TYPE_META.note;
+        const dateStr = new Date(e.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        return `<div class="card-tl-entry">
+          <div class="card-tl-left">
+            <div class="card-tl-dot" style="background:${meta.color};box-shadow:0 0 0 1.5px ${meta.color}40"></div>
+          </div>
+          <div class="card-tl-body">
+            <div class="card-tl-meta">
+              <span class="card-tl-date">${dateStr}</span>
+              <span class="card-tl-type" style="background:${meta.color}18;color:${meta.color}">${meta.emoji} ${meta.label}</span>
+            </div>
+            <div class="card-tl-desc">${escHtml(e.description)}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="card-tl-empty">No activity logged yet — open the task to add entries.</div>`;
+
+  return `<div class="card-timeline" id="cardtl-${taskId}" onclick="event.stopPropagation()">
+    <div class="card-tl-list">${entries}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:6px;font-size:11px;padding:4px 8px"
+      onclick="event.stopPropagation();openEditModal('${taskId}')">✏️ Edit entries in task</button>
+  </div>`;
+}
+
+function toggleTaskTimeline(taskId) {
+  const panel = document.getElementById('cardtl-' + taskId);
+  const btn   = document.getElementById('tlbtn-' + taskId);
+  if (!panel || !btn) return;
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+}
+
+// ═══════════════════════════════════════════════════
+// TOOLS GRID (modal)
+// ═══════════════════════════════════════════════════
+function buildToolsGrid() {
+  document.getElementById('toolsGrid').innerHTML = DA_TOOLS.map(t =>
+    `<button type="button" class="tool-btn" onclick="toggleTool('${t}')" id="tbtn-${t.replace(/\s+/g,'_')}">${t}</button>`
+  ).join('');
+}
+function toggleTool(name) {
+  const idx = selectedTools.indexOf(name);
+  if (idx>-1) selectedTools.splice(idx,1); else selectedTools.push(name);
+  const id = 'tbtn-'+name.replace(/\s+/g,'_');
+  const btn = document.getElementById(id);
+  if (btn) btn.classList.toggle('sel', selectedTools.includes(name));
+}
+function setSelectedTools(arr) {
+  selectedTools = [...(arr||[])];
+  DA_TOOLS.forEach(t => {
+    const id = 'tbtn-'+t.replace(/\s+/g,'_');
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('sel', selectedTools.includes(t));
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════
+function quickAdd() {
+  const title = document.getElementById('quickTitle').value.trim();
+  if (!title) { showToast('Please enter a task title'); return; }
+  tasks.unshift({
+    id:'task_'+Date.now(), createdAt:new Date().toISOString(),
+    title,
+    catId:    document.getElementById('quickCat').value,
+    priority: document.getElementById('quickPriority').value,
+    status:   document.getElementById('quickStatus').value,
+    dueDate:  document.getElementById('quickDue').value,
+    notes:'',problem:'',action:'',impact:'',effort:'',risk:'',
+    blockedReason:'',timeSaved:0,highlight:false,tools:[],
+  });
+  save(); saveTrend();
+  document.getElementById('quickTitle').value = '';
+  document.getElementById('quickDue').value = new Date().toISOString().split('T')[0];
+  renderAll(); showToast('Task added ✓');
+}
+
+function toggleDone(id) {
+  const t = tasks.find(t=>t.id===id); if(!t) return;
+  t.status = t.status==='done'?'todo':'done';
+  if (t.status==='done') t.completedAt = new Date().toISOString();
+  save(); saveTrend(); renderAll();
+}
+
+function deleteTask(id) {
+  if (!id) return;
+  tasks = tasks.filter(t=>t.id!==id);
+  save(); closeModal('taskModal'); renderAll(); showToast('Task deleted');
+}
+
+function clearDone() {
+  tasks = tasks.filter(t=>t.status!=='done');
+  save(); renderAll(); showToast('Done tasks cleared');
+}
+
+function setFilter(f,el) {
+  currentFilter=f;
+  document.querySelectorAll('#filterChips .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); renderTasks();
+}
+
+function toggleBlockedField(val) {
+  document.getElementById('m-blocked-reason-group').style.display = val==='blocked'?'flex':'none';
+}
+
+// ═══════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════
+function openNewModal() {
+  currentEditId = null;
+  document.getElementById('modalTitle').textContent='New Task';
+  ['m-title','m-notes','m-problem','m-action','m-impact','m-blocked-reason','m-tools-custom'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-priority').value='high';
+  document.getElementById('m-risk').value='';
+  document.getElementById('m-status').value='todo';
+  document.getElementById('m-due').value=new Date().toISOString().split('T')[0];
+  document.getElementById('m-effort').value='';
+  document.getElementById('m-timesaved').value='';
+  document.getElementById('m-highlight').checked=false;
+  setSelectedTools([]);
+  currentTimeline = [];
+  toggleBlockedField('todo');
+  renderCatSelects();
+  renderTimeline();
+  document.getElementById('tl-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tl-type').value = 'note';
+  document.getElementById('tl-desc').value = '';
+  document.getElementById('deleteBtn').style.display='none';
+  document.getElementById('taskModal').classList.add('open');
+  setTimeout(()=>document.getElementById('m-title').focus(),80);
+}
+
+function openEditModal(id) {
+  const t=tasks.find(t=>t.id===id); if(!t) return;
+  currentEditId=id;
+  document.getElementById('modalTitle').textContent='Edit Task';
+  document.getElementById('m-title').value         =t.title;
+  document.getElementById('m-notes').value         =t.notes||'';
+  document.getElementById('m-problem').value       =t.problem||'';
+  document.getElementById('m-action').value        =t.action||'';
+  document.getElementById('m-impact').value        =t.impact||'';
+  document.getElementById('m-priority').value      =t.priority||'medium';
+  document.getElementById('m-risk').value          =t.risk||'';
+  document.getElementById('m-status').value        =t.status;
+  document.getElementById('m-due').value           =t.dueDate||'';
+  document.getElementById('m-effort').value        =t.effort||'';
+  document.getElementById('m-blocked-reason').value=t.blockedReason||'';
+  document.getElementById('m-timesaved').value     =t.timeSaved||'';
+  document.getElementById('m-highlight').checked   =!!t.highlight;
+  // Tools
+  const knownTools = (t.tools||[]).filter(x=>DA_TOOLS.includes(x));
+  const customTools = (t.tools||[]).filter(x=>!DA_TOOLS.includes(x));
+  setSelectedTools(knownTools);
+  document.getElementById('m-tools-custom').value = customTools.join(', ');
+  toggleBlockedField(t.status);
+  renderCatSelects();
+  document.getElementById('m-cat').value=t.catId||'';
+  currentTimeline = JSON.parse(JSON.stringify(t.timeline || []));
+  renderTimeline();
+  document.getElementById('tl-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tl-type').value = 'note';
+  document.getElementById('tl-desc').value = '';
+  document.getElementById('deleteBtn').style.display='inline-flex';
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function saveTask() {
+  const title=document.getElementById('m-title').value.trim();
+  if (!title) { showToast('Title required'); return; }
+  // Combine grid tools + custom
+  const customRaw = document.getElementById('m-tools-custom').value;
+  const customTools = customRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const allTools = [...new Set([...selectedTools,...customTools])];
+
+  const fields = {
+    title,
+    notes:         document.getElementById('m-notes').value.trim(),
+    problem:       document.getElementById('m-problem').value.trim(),
+    action:        document.getElementById('m-action').value.trim(),
+    impact:        document.getElementById('m-impact').value.trim(),
+    catId:         document.getElementById('m-cat').value,
+    priority:      document.getElementById('m-priority').value,
+    risk:          document.getElementById('m-risk').value,
+    status:        document.getElementById('m-status').value,
+    dueDate:       document.getElementById('m-due').value,
+    effort:        document.getElementById('m-effort').value,
+    blockedReason: document.getElementById('m-blocked-reason').value.trim(),
+    timeSaved:     parseInt(document.getElementById('m-timesaved').value)||0,
+    highlight:     document.getElementById('m-highlight').checked,
+    tools:         allTools,
+    timeline:      JSON.parse(JSON.stringify(currentTimeline)),
+  };
+  if (currentEditId) {
+    const t=tasks.find(t=>t.id===currentEditId);
+    if(t){ Object.assign(t,fields); if(t.status==='done'&&!t.completedAt) t.completedAt=new Date().toISOString(); }
+  } else {
+    tasks.unshift({id:'task_'+Date.now(),createdAt:new Date().toISOString(),...fields});
+  }
+  save(); saveTrend(); closeModal('taskModal'); renderAll(); showToast('Saved ✓');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Categories
+function openCatModal() { renderCatList(); document.getElementById('catModal').classList.add('open'); }
+function renderCatList() {
+  document.getElementById('catList').innerHTML = categories.map(c=>
+    `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:0.5px solid var(--sep)">
+      <div style="width:11px;height:11px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+      <span style="flex:1;font-size:13px">${escHtml(c.name)}</span>
+      <span style="font-size:11px;color:var(--label)">${tasks.filter(t=>t.catId===c.id).length}</span>
+      <button class="icon-btn" onclick="deleteCategory('${c.id}')">✕</button>
+    </div>`
+  ).join('');
+}
+function addCategory() {
+  const name=document.getElementById('newCatName').value.trim(); if(!name) return;
+  categories.push({id:'cat_'+Date.now(),name,color:document.getElementById('newCatColor').value});
+  document.getElementById('newCatName').value='';
+  save(); renderCatList(); renderAll();
+}
+function deleteCategory(id) {
+  categories=categories.filter(c=>c.id!==id);
+  tasks.forEach(t=>{if(t.catId===id)t.catId='';});
+  save(); renderCatList(); renderAll();
+}
+
+// ═══════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════
+function switchTab(tab) {
+  activeTab=tab;
+  document.getElementById('tab-tasks').style.display  = tab==='tasks' ?'':'none';
+  document.getElementById('tab-report').style.display = tab==='report'?'':'none';
+  document.querySelectorAll('.tab').forEach((el,i)=>
+    el.classList.toggle('active',(i===0&&tab==='tasks')||(i===1&&tab==='report'))
+  );
+  if(tab==='report') renderReport();
+}
+
+// ═══════════════════════════════════════════════════
+// WEEKLY REPORT
+// ═══════════════════════════════════════════════════
+function renderReport() {
+  const {mon,sun} = getWeekRange();
+  document.getElementById('reportDateRange').textContent = `${fmtDate(mon)} – ${fmtDate(sun)}`;
+  const wt        = tasks.filter(t=>isInCurrentWeek(t));
+  const done      = sortTasks(wt.filter(t=>t.status==='done'));
+  const inp       = sortTasks(wt.filter(t=>t.status==='in_progress'));
+  const blocked   = sortTasks(wt.filter(t=>t.status==='blocked'));
+  const todo      = sortTasks(wt.filter(t=>t.status==='todo'));
+  const highlights = wt.filter(t=>t.highlight);
+  const nextWeek  = sortTasks(tasks.filter(t=>t.status!=='done'&&isDueNextWeek(t.dueDate))).slice(0,5);
+  const ts        = done.reduce((a,t)=>a+(t.timeSaved||0),0);
+
+  document.getElementById('r-done').textContent    = done.length;
+  document.getElementById('r-inp').textContent     = inp.length;
+  document.getElementById('r-blocked').textContent = blocked.length;
+  document.getElementById('r-tsaved').textContent  = ts>=60?Math.round(ts/60)+'h':ts+'m';
+
+  buildSummary(done,inp,blocked,highlights,nextWeek,wt.length);
+  buildHighlights(highlights);
+  buildSection('r-sec-done',    '✅ Completed This Week', done,    '#34C759');
+  buildSection('r-sec-inp',     '🔄 In Progress',         inp,     '#007AFF');
+  buildBlockedSec(blocked);
+  buildSection('r-sec-todo',    '📋 Upcoming / To Do',    todo,    '#8E8E93');
+  buildNextWeekSec(nextWeek);
+}
+
+function buildSummary(done,inp,blocked,highlights,nextWeek,total) {
+  const pct = total ? Math.round(done.length/total*100) : 0;
+  let txt=`<strong>Completed ${done.length} task${done.length!==1?'s':''}</strong> (${pct}% completion).`;
+  if (inp.length) txt+=` ${inp.length} in progress.`;
+  if (blocked.length) txt+=` <strong style="color:var(--red)">${blocked.length} blocked.</strong>`;
+  if (highlights.length) { txt+=` Key highlight: <strong>${escHtml(highlights[0].title)}</strong>`; if(highlights[0].impact) txt+=` — ${escHtml(highlights[0].impact)}`; txt+='.'; }
+  if (nextWeek.length) { txt+=` Next week: <strong>${escHtml(nextWeek[0].title)}</strong>${nextWeek.length>1?' +'+( nextWeek.length-1)+' more':''}.`; }
+  document.getElementById('r-summary').innerHTML=txt;
+}
+
+function buildHighlights(arr) {
+  const el=document.getElementById('r-highlights');
+  if (!arr.length) { el.innerHTML=''; return; }
+  el.innerHTML=`<div class="report-section"><div class="report-sec-title">⭐ Key Highlights</div>${arr.map(t=>{
+    const cat=categories.find(c=>c.id===t.catId);
+    return `<div class="highlight-item">
+      <div class="highlight-item-title">${escHtml(t.title)}</div>
+      ${t.impact?`<div class="highlight-item-impact">📈 ${escHtml(t.impact)}</div>`:''}
+      ${t.tools&&t.tools.length?`<div style="font-size:11px;color:var(--indigo);margin-top:3px;font-weight:600">🛠 ${t.tools.join(' · ')}</div>`:''}
+      ${cat?`<span class="badge badge-cat" style="background:${cat.color}18;color:${cat.color};display:inline-flex;margin-top:4px">${cat.name}</span>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function buildSection(id,label,arr,dotColor) {
+  const el=document.getElementById(id);
+  if (!arr.length) { el.innerHTML=''; return; }
+  el.innerHTML=`<div class="report-section"><div class="report-sec-title">${label}</div>${arr.map(t=>{
+    const cat=categories.find(c=>c.id===t.catId);
+    return `<div class="report-item">
+      <div class="report-dot" style="background:${dotColor}"></div>
+      <div class="report-text">
+        ${escHtml(t.title)}
+        ${t.problem?`<div class="pai-block"><b>P:</b> ${escHtml(t.problem)}<br>${t.action?`<b>A:</b> ${escHtml(t.action)}<br>`:''}${t.impact?`<b>I:</b> ${escHtml(t.impact)}</br>`:''}</div>`:''}
+        ${!t.problem&&t.impact?`<div class="report-sub">📈 ${escHtml(t.impact)}</div>`:''}
+        ${t.tools&&t.tools.length?`<div class="report-sub">🛠 ${t.tools.join(' · ')}</div>`:''}
+        ${buildTimelineBlock(t)}
+        <div class="report-meta">
+          ${cat?`<span class="report-badge" style="background:${cat.color}18;color:${cat.color}">${cat.name}</span>`:''}
+          ${t.effort?`<span class="report-badge badge-effort">⏱ ${t.effort}</span>`:''}
+          ${t.timeSaved?`<span class="report-badge" style="background:rgba(52,199,89,0.1);color:#1a7a38">⚡ ${t.timeSaved}m</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function buildBlockedSec(arr) {
+  const el=document.getElementById('r-sec-blocked');
+  if (!arr.length) { el.innerHTML=''; return; }
+  el.innerHTML=`<div class="report-section"><div class="report-sec-title">⛔ Blocked / Needs Attention</div>${arr.map(t=>{
+    const cat=categories.find(c=>c.id===t.catId);
+    return `<div class="report-item">
+      <div class="report-dot" style="background:var(--red)"></div>
+      <div class="report-text">
+        ${escHtml(t.title)}
+        ${t.blockedReason?`<div class="report-sub" style="color:var(--red)">🔴 ${escHtml(t.blockedReason)}</div>`:''}
+        <div class="report-meta">
+          ${cat?`<span class="report-badge" style="background:${cat.color}18;color:${cat.color}">${cat.name}</span>`:''}
+          ${t.risk?`<span class="report-badge badge-risk-${t.risk}">⚠️ ${t.risk}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function buildNextWeekSec(arr) {
+  const el=document.getElementById('r-sec-nextweek');
+  if (!arr.length) { el.innerHTML=''; return; }
+  const {mon:nM,sun:nS}=getWeekRange(weekOffset+1);
+  el.innerHTML=`<div class="report-section"><div class="report-sec-title">📅 Next Week Focus (${fmtDate(nM)}–${fmtDate(nS)})</div>${arr.map(t=>{
+    const cat=categories.find(c=>c.id===t.catId);
+    return `<div class="report-item">
+      <div class="report-dot" style="background:var(--teal)"></div>
+      <div class="report-text">${escHtml(t.title)}${t.dueDate?`<div class="report-sub">Due ${fmtDate(new Date(t.dueDate+'T00:00:00'))}</div>`:''}
+      </div>
+      ${cat?`<span class="report-badge" style="background:${cat.color}18;color:${cat.color}">${cat.name}</span>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// DAILY SNAPSHOT — Screenshot / PNG
+// ═══════════════════════════════════════════════════
+function generateSnapshot() {
+  const wt   = tasks.filter(t => isInCurrentWeek(t));
+  const done = sortTasks(wt.filter(t => t.status === 'done'));
+  const inp  = sortTasks(wt.filter(t => t.status === 'in_progress'));
+  const bl   = sortTasks(wt.filter(t => t.status === 'blocked'));
+  const todo = sortTasks(wt.filter(t => t.status === 'todo' && t.priority === 'high')).slice(0, 3);
+  const hl   = wt.filter(t => t.highlight);
+  const tot  = wt.length;
+  const pct  = tot ? Math.round(done.length / tot * 100) : 0;
+  const ts   = done.reduce((a, t) => a + (t.timeSaved || 0), 0);
+  const today = fmtFull(new Date());
+  const { mon, sun } = getWeekRange();
+
+  // ── Inline-styled timeline block (no CSS classes — safe for html2canvas)
+  function snapTimeline(t) {
+    const tl = (t.timeline || []);
+    if (!tl.length) return '';
+    const sorted = [...tl].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const rows = sorted.map((e, idx) => {
+      const meta   = TL_TYPE_META[e.type] || TL_TYPE_META.note;
+      const isLast = idx === sorted.length - 1;
+      const ds     = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `
+        <div style="display:flex;gap:0;position:relative;${isLast ? '' : 'padding-bottom:8px;'}">
+          ${!isLast ? `<div style="position:absolute;left:7px;top:16px;width:1px;bottom:0;background:#E5E5EA;"></div>` : ''}
+          <div style="flex-shrink:0;width:16px;display:flex;flex-direction:column;align-items:center;padding-top:3px;">
+            <div style="width:9px;height:9px;border-radius:50%;background:${meta.color};border:2px solid #fff;box-shadow:0 0 0 1.5px ${meta.color};flex-shrink:0;position:relative;z-index:1;"></div>
+          </div>
+          <div style="flex:1;min-width:0;padding-left:7px;">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;flex-wrap:wrap;">
+              <span style="font-size:9px;font-weight:800;color:#3A3A3C;font-family:-apple-system,sans-serif;">${ds}</span>
+              <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;background:${meta.color}22;color:${meta.color};font-family:-apple-system,sans-serif;">${meta.emoji} ${meta.label}</span>
+            </div>
+            <div style="font-size:11px;color:#48484A;line-height:1.45;font-family:-apple-system,sans-serif;">${escHtml(e.description)}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div style="margin-top:7px;padding:8px 10px;background:#F5F7FA;border-radius:8px;border-left:3px solid #D1D5E8;">
+        <div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.7px;color:#8E8E93;margin-bottom:6px;font-family:-apple-system,sans-serif;">📍 Activity Trail</div>
+        <div>${rows}</div>
+      </div>`;
+  }
+
+  // ── Full task row: title + meta + impact + tools + timeline
+  function snapTask(t, dotColor, showTl) {
+    const cat         = categories.find(c => c.id === t.catId);
+    const impactStr   = t.impact ? `<div style="font-size:11px;color:#636366;margin-top:2px;font-family:-apple-system,sans-serif;">📈 ${escHtml(t.impact.substring(0, 80))}</div>` : '';
+    const toolsStr    = (t.tools || []).length ? `<div style="font-size:10px;color:#5856D6;margin-top:2px;font-weight:600;font-family:-apple-system,sans-serif;">🛠 ${t.tools.slice(0, 5).join(' · ')}</div>` : '';
+    const catBadge    = cat ? `<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:${cat.color}22;color:${cat.color};font-family:-apple-system,sans-serif;">${cat.name}</span>` : '';
+    const effortBadge = t.effort ? `<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:rgba(94,92,230,0.1);color:#5856D6;font-family:-apple-system,sans-serif;">⏱ ${t.effort}</span>` : '';
+    const priBadge    = t.priority === 'high' ? `<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:rgba(255,59,48,0.1);color:#FF3B30;font-family:-apple-system,sans-serif;">High</span>` : '';
+    const tlHtml      = showTl ? snapTimeline(t) : '';
+    return `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:0.5px solid #F2F2F2;">
+        <div style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;margin-top:5px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;line-height:1.35;color:#1C1C1E;font-family:-apple-system,sans-serif;">${escHtml(t.title)}</div>
+          ${impactStr}${toolsStr}
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">${catBadge}${effortBadge}${priBadge}</div>
+          ${tlHtml}
+        </div>
+      </div>`;
+  }
+
+  // ── Section heading
+  function snapHeading(label) {
+    return `<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:#8E8E93;margin:12px 0 5px;padding-bottom:4px;border-bottom:1px solid #E5E5EA;font-family:-apple-system,sans-serif;">${label}</div>`;
+  }
+
+  // ── Build HTML — fully inline-styled, no class dependencies
+  let html = `
+  <div id="capture-area" style="background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;width:100%;">
+
+    <!-- HEADER -->
+    <div style="background:linear-gradient(135deg,#007AFF 0%,#5E5CE6 100%);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff;">📊 Daily Progress — Data Analyst</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;">${today} · Week of ${fmtDate(mon)}–${fmtDate(sun)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:28px;font-weight:700;color:#fff;line-height:1;">${pct}%</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.8);margin-top:2px;">${done.length}/${tot} tasks done</div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div style="padding:14px 18px;">
+
+      <!-- STATS -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+        <div style="background:#F5F5F7;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#34C759;line-height:1;">${done.length}</div>
+          <div style="font-size:9px;color:#8E8E93;margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;">Done</div>
+        </div>
+        <div style="background:#F5F5F7;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#007AFF;line-height:1;">${inp.length}</div>
+          <div style="font-size:9px;color:#8E8E93;margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;">In Progress</div>
+        </div>
+        <div style="background:#F5F5F7;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#FF3B30;line-height:1;">${bl.length}</div>
+          <div style="font-size:9px;color:#8E8E93;margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;">Blocked</div>
+        </div>
+        <div style="background:#F5F5F7;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#5856D6;line-height:1;">${ts >= 60 ? Math.round(ts / 60) + 'h' : ts + 'm'}</div>
+          <div style="font-size:9px;color:#8E8E93;margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;">Time Saved</div>
+        </div>
+      </div>`;
+
+  // Key Highlights
+  if (hl.length) {
+    html += snapHeading('⭐ Key Highlights');
+    html += hl.slice(0, 3).map(t => `
+      <div style="background:rgba(255,159,10,0.06);border-left:3px solid #FF9F0A;padding:8px 11px;border-radius:0 8px 8px 0;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:700;color:#1C1C1E;">${escHtml(t.title)}</div>
+        ${t.impact ? `<div style="font-size:11px;color:#636366;margin-top:2px;">📈 ${escHtml(t.impact.substring(0, 90))}</div>` : ''}
+        ${snapTimeline(t)}
+      </div>`).join('');
+  }
+
+  // Completed
+  if (done.length) {
+    html += snapHeading('✅ Completed This Week');
+    html += done.slice(0, 8).map(t => snapTask(t, '#34C759', true)).join('');
+  }
+
+  // In Progress
+  if (inp.length) {
+    html += snapHeading('🔄 In Progress');
+    html += inp.slice(0, 5).map(t => snapTask(t, '#007AFF', true)).join('');
+  }
+
+  // Blocked
+  if (bl.length) {
+    html += snapHeading('⛔ Blocked');
+    html += bl.slice(0, 3).map(t => `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:0.5px solid #F2F2F2;">
+        <div style="width:7px;height:7px;border-radius:50%;background:#FF3B30;flex-shrink:0;margin-top:5px;"></div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:#1C1C1E;">${escHtml(t.title)}</div>
+          ${t.blockedReason ? `<div style="font-size:11px;color:#FF3B30;margin-top:2px;">🔴 ${escHtml(t.blockedReason)}</div>` : ''}
+          ${snapTimeline(t)}
+        </div>
+      </div>`).join('');
+  }
+
+  // High priority todo
+  if (todo.length) {
+    html += snapHeading('🔴 High Priority — Next Up');
+    html += todo.map(t => snapTask(t, '#FF3B30', false)).join('');
+  }
+
+  html += `
+    </div>
+
+    <!-- FOOTER -->
+    <div style="padding:9px 18px;background:#F5F5F7;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #E5E5EA;">
+      <span style="font-size:10px;color:#8E8E93;">WeekFlow — Data Analyst Tracker</span>
+      <span style="font-size:10px;color:#8E8E93;">Generated ${today}</span>
+    </div>
+
+  </div>`;
+
+  document.querySelector('#snapModal .modal-body').innerHTML = html;
+  document.getElementById('snapModal').classList.add('open');
+}
+
+function downloadSnapshot() {
+  const area = document.getElementById('capture-area');
+  if (!area) { showToast('Generate a snapshot first'); return; }
+
+  function doCapture() {
+    // Temporarily remove overflow clip on modal body so full height renders
+    const modalBody = document.querySelector('#snapModal .modal-body');
+    const origOverflow = modalBody.style.overflow;
+    const origMaxH     = modalBody.style.maxHeight;
+    modalBody.style.overflow  = 'visible';
+    modalBody.style.maxHeight = 'none';
+
+    html2canvas(area, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth:  area.scrollWidth,
+      windowHeight: area.scrollHeight,
+    }).then(canvas => {
+      modalBody.style.overflow  = origOverflow;
+      modalBody.style.maxHeight = origMaxH;
+      const link = document.createElement('a');
+      link.download = `weekflow-snapshot-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Snapshot downloaded ✓');
+    }).catch(() => {
+      modalBody.style.overflow  = origOverflow;
+      modalBody.style.maxHeight = origMaxH;
+      showToast('Download failed — try Copy Text instead');
+    });
+  }
+
+  if (window.html2canvas) {
+    doCapture();
+  } else {
+    showToast('Loading image library…');
+    const script  = document.createElement('script');
+    script.src    = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.onload = doCapture;
+    script.onerror = () => showToast('Could not load library — check internet connection');
+    document.head.appendChild(script);
+  }
+}
+
+function copySnapshotText() {
+  // Build plain text version for Slack / email
+  const wt   = tasks.filter(t=>isInCurrentWeek(t));
+  const done = sortTasks(wt.filter(t=>t.status==='done'));
+  const inp  = sortTasks(wt.filter(t=>t.status==='in_progress'));
+  const bl   = sortTasks(wt.filter(t=>t.status==='blocked'));
+  const tot  = wt.length;
+  const pct  = tot ? Math.round(done.length/tot*100) : 0;
+  const ts   = done.reduce((a,t)=>a+(t.timeSaved||0),0);
+  const today = fmtFull(new Date());
+
+  let txt = `📊 DAILY PROGRESS UPDATE — ${today}\n${'─'.repeat(40)}\n`;
+  txt += `Overall: ${pct}% complete (${done.length}/${tot} tasks)`;
+  if (ts) txt += ` | ⚡ ${ts}m saved`;
+  txt += '\n\n';
+
+  if (done.length) {
+    txt += `✅ COMPLETED (${done.length})\n`;
+    done.forEach(t => {
+      const cat=categories.find(c=>c.id===t.catId);
+      txt += `  • ${t.title}${cat?' ['+cat.name+']':''}`;
+      if (t.impact) txt += `\n    📈 ${t.impact}`;
+      if (t.tools&&t.tools.length) txt += `\n    🛠 ${t.tools.join(', ')}`;
+      if (t.timeline&&t.timeline.length) {
+        const sorted=[...t.timeline].sort((a,b)=>new Date(a.date)-new Date(b.date));
+        sorted.forEach(e=>{
+          const meta=TL_TYPE_META[e.type]||TL_TYPE_META.note;
+          const ds=new Date(e.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+          txt+=`\n      ${meta.emoji} ${ds}: ${e.description}`;
+        });
+      }
+      txt += '\n';
+    });
+    txt += '\n';
+  }
+  if (inp.length) {
+    txt += `🔄 IN PROGRESS (${inp.length})\n`;
+    inp.forEach(t => {
+      txt += `  • ${t.title}`;
+      if (t.timeline&&t.timeline.length) {
+        const sorted=[...t.timeline].sort((a,b)=>new Date(a.date)-new Date(b.date));
+        const last=sorted[sorted.length-1];
+        const meta=TL_TYPE_META[last.type]||TL_TYPE_META.note;
+        const ds=new Date(last.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        txt+=`\n      Last activity ${meta.emoji} ${ds}: ${last.description}`;
+      }
+      txt += '\n';
+    }); txt += '\n';
+  }
+  if (bl.length) {
+    txt += `⛔ BLOCKED (${bl.length})\n`;
+    bl.forEach(t => { txt += `  • ${t.title}${t.blockedReason?'\n    Reason: '+t.blockedReason:''}\n`; }); txt += '\n';
+  }
+  txt += `\n— Sent from WeekFlow`;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Snapshot text copied ✓')).catch(()=>showToast('Copy failed'));
+}
+
+// Full weekly report copy
+function copyReport() {
+  const {mon,sun}=getWeekRange();
+  const wt   = tasks.filter(t=>isInCurrentWeek(t));
+  const done = sortTasks(wt.filter(t=>t.status==='done'));
+  const inp  = sortTasks(wt.filter(t=>t.status==='in_progress'));
+  const bl   = sortTasks(wt.filter(t=>t.status==='blocked'));
+  const todo = sortTasks(wt.filter(t=>t.status==='todo'));
+  const hl   = wt.filter(t=>t.highlight);
+  const nw   = sortTasks(tasks.filter(t=>t.status!=='done'&&isDueNextWeek(t.dueDate))).slice(0,5);
+  const ts   = done.reduce((a,t)=>a+(t.timeSaved||0),0);
+  const tot  = wt.length;
+  const pct  = tot ? Math.round(done.length/tot*100) : 0;
+
+  let txt=`📊 WEEKLY STATUS REPORT\nWeek of ${fmtDate(mon)} – ${fmtDate(sun)}\n`;
+  txt+=`Progress: ${pct}% (${done.length}/${tot})${ts?' | ⚡ '+ts+'m saved':''}\n\n`;
+  if(hl.length){txt+=`⭐ KEY HIGHLIGHTS\n`;hl.forEach(t=>{txt+=`  • ${t.title}`;if(t.impact)txt+=`\n    📈 ${t.impact}`;if(t.tools&&t.tools.length)txt+=`\n    🛠 ${t.tools.join(', ')}`;txt+='\n';});txt+='\n';}
+  if(done.length){txt+=`✅ COMPLETED (${done.length})\n`;done.forEach(t=>{const c=categories.find(c=>c.id===t.catId);txt+=`  • ${t.title}${c?' ['+c.name+']':''}`;if(t.problem)txt+=`\n    P: ${t.problem}`;if(t.action)txt+=`\n    A: ${t.action}`;if(t.impact)txt+=`\n    I: ${t.impact}`;if(t.tools&&t.tools.length)txt+=`\n    🛠 ${t.tools.join(', ')}`;txt+='\n';});txt+='\n';}
+  if(inp.length){txt+=`🔄 IN PROGRESS (${inp.length})\n`;inp.forEach(t=>{txt+=`  • ${t.title}\n`;});txt+='\n';}
+  if(bl.length){txt+=`⛔ BLOCKED (${bl.length})\n`;bl.forEach(t=>{txt+=`  • ${t.title}`;if(t.blockedReason)txt+=`\n    Reason: ${t.blockedReason}`;txt+='\n';});txt+='\n';}
+  if(todo.length){txt+=`📋 UPCOMING (${todo.length})\n`;todo.forEach(t=>{txt+=`  • ${t.title}\n`;});txt+='\n';}
+  if(nw.length){txt+=`📅 NEXT WEEK\n`;nw.forEach(t=>{txt+=`  • ${t.title}\n`;});}
+  txt+=`\n— WeekFlow Data Analyst Tracker`;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Report copied ✓')).catch(()=>showToast('Copy failed'));
+}
+
+// ═══════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════
+function initKeyboard() {
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement.tagName.toLowerCase();
+    if(['input','textarea','select'].includes(tag)) return;
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    switch(e.key.toUpperCase()) {
+      case 'N': e.preventDefault(); openNewModal(); break;
+      case 'R': e.preventDefault(); switchTab(activeTab==='report'?'tasks':'report'); break;
+      case 'S': e.preventDefault(); generateSnapshot(); break;
+      case 'D': {
+        const t=tasks.find(t=>t.status==='todo'||t.status==='in_progress'||t.status==='blocked');
+        if(t){toggleDone(t.id);showToast(`✓ "${t.title.substring(0,28)}" done`);} break;
+      }
+      case 'B': {
+        const t=tasks.find(t=>t.status==='todo');
+        if(t){t.status='blocked';save();renderAll();showToast(`⛔ "${t.title.substring(0,28)}" blocked`);} break;
+      }
+      case 'ARROWLEFT':  shiftWeek(-1); break;
+      case 'ARROWRIGHT': shiftWeek(1);  break;
+      case 'ESCAPE':
+        document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); break;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el=>
+  el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');})
+);
+window.addEventListener('resize',()=>{saveTrend();renderTrendChart();});
+
+// ═══════════════════════════════════════════════════
+// TIMELINE — activity log per task
+// ═══════════════════════════════════════════════════
+const TL_TYPE_META = {
+  note:          { label: 'Note',          color: '#8E8E93', emoji: '📝' },
+  started:       { label: 'Started',       color: '#34C759', emoji: '🚀' },
+  analysis:      { label: 'Analysis',      color: '#007AFF', emoji: '🔍' },
+  data_pull:     { label: 'Data Pull',     color: '#5856D6', emoji: '🗄'  },
+  sql_query:     { label: 'SQL / Query',   color: '#FF9500', emoji: '💾' },
+  visualization: { label: 'Visualization', color: '#32ADE6', emoji: '📊' },
+  review:        { label: 'Review',        color: '#FF9F0A', emoji: '👁'  },
+  blocker:       { label: 'Blocker Hit',   color: '#FF3B30', emoji: '⛔' },
+  resolved:      { label: 'Resolved',      color: '#34C759', emoji: '✅' },
+  delivered:     { label: 'Delivered',     color: '#5E5CE6', emoji: '🎯' },
+};
+
+function addTimelineEntry() {
+  const date = document.getElementById('tl-date').value;
+  const type = document.getElementById('tl-type').value;
+  const desc = document.getElementById('tl-desc').value.trim();
+  if (!desc) { showToast('Describe what was done'); return; }
+  if (!date) { showToast('Pick a date'); return; }
+  currentTimeline.push({
+    id:   'tl_' + Date.now(),
+    date,
+    type,
+    description: desc,
+  });
+  // Sort chronologically (oldest first in list, newest at bottom)
+  currentTimeline.sort((a,b) => new Date(a.date) - new Date(b.date));
+  document.getElementById('tl-desc').value = '';
+  renderTimeline();
+}
+
+function deleteTimelineEntry(id) {
+  currentTimeline = currentTimeline.filter(e => e.id !== id);
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const list    = document.getElementById('tlList');
+  const countEl = document.getElementById('tlCount');
+  if (!list) return;
+
+  countEl.textContent = currentTimeline.length
+    ? currentTimeline.length + (currentTimeline.length === 1 ? ' entry' : ' entries')
+    : '0 entries';
+
+  if (!currentTimeline.length) {
+    list.innerHTML = '<div class="tl-empty">No activity logged yet — add the first entry above</div>';
+    return;
+  }
+
+  // Show newest first in UI (reversed), but data stored oldest first
+  const display = [...currentTimeline].reverse();
+  list.innerHTML = display.map(e => {
+    const meta    = TL_TYPE_META[e.type] || TL_TYPE_META.note;
+    const dateStr = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+    const typeBg  = meta.color + '18';
+    return `<div class="tl-entry">
+      <div class="tl-left">
+        <div class="tl-dot" style="background:${meta.color};box-shadow:0 0 0 2px ${meta.color}30"></div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-meta">
+          <span class="tl-date">${dateStr}</span>
+          <span class="tl-type" style="background:${typeBg};color:${meta.color}">${meta.emoji} ${meta.label}</span>
+          <button class="tl-del" onclick="deleteTimelineEntry('${e.id}')" title="Delete entry">✕</button>
+        </div>
+        <div class="tl-desc">${escHtml(e.description)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Timeline in Report — show per task in completed section
+function buildTimelineBlock(t) {
+  if (!t.timeline || !t.timeline.length) return '';
+  const sorted = [...t.timeline].sort((a,b) => new Date(a.date)-new Date(b.date));
+  return `<div style="margin-top:6px;padding:8px 10px;background:rgba(0,122,255,0.03);border-left:2px solid rgba(0,122,255,0.2);border-radius:0 6px 6px 0">
+    ${sorted.map(e => {
+      const meta = TL_TYPE_META[e.type] || TL_TYPE_META.note;
+      const ds   = new Date(e.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div style="display:flex;gap:7px;align-items:baseline;padding:2px 0;font-size:11px">
+        <span style="color:${meta.color};font-weight:700;flex-shrink:0">${ds}</span>
+        <span style="color:${meta.color};font-weight:800;flex-shrink:0">${meta.emoji}</span>
+        <span style="color:var(--text2)">${escHtml(e.description)}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE / LOAD / EXPORT / IMPORT
+// ═══════════════════════════════════════════════════
+const LAST_SAVED_KEY = 'wf_last_saved';
+const SLOTS_KEY      = 'wf_save_slots';
+
+// Enhanced save — also records timestamp
+function save() {
+  try {
+    localStorage.setItem(SK, JSON.stringify(tasks));
+    localStorage.setItem(CK, JSON.stringify(categories));
+    const now = new Date().toISOString();
+    localStorage.setItem(LAST_SAVED_KEY, now);
+    updateLastSavedLabel(now);
+  } catch(e) {}
+}
+
+function updateLastSavedLabel(isoStr) {
+  const el = document.getElementById('lastSavedLabel');
+  if (!el || !isoStr) return;
+  const d = new Date(isoStr);
+  const timeStr = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const isToday = d.toDateString() === new Date().toDateString();
+  el.textContent = 'Last saved: ' + (isToday ? 'Today at ' + timeStr : dateStr + ' ' + timeStr);
+}
+
+// ── EXPORT: Download full backup as .json
+function exportData() {
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    tasks,
+    categories,
+    trend: (() => { try { return JSON.parse(localStorage.getItem(TRK)||'{}'); } catch(e){ return {}; } })()
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0];
+  a.href     = url;
+  a.download = `weekflow-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exported ✓');
+}
+
+// ── IMPORT: Load from .json file and resume
+function triggerImport() {
+  document.getElementById('importFile').click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Validate
+      if (!data.tasks || !Array.isArray(data.tasks)) {
+        showToast('Invalid backup file'); return;
+      }
+      const existing = tasks.length;
+      if (existing > 0) {
+        const confirmed = window.confirm(
+          `You have ${existing} existing task${existing!==1?'s':''}. Choose how to import:\n\n` +
+          `• OK = Merge (keep existing + add imported)\n` +
+          `• Cancel = Replace (import only)`
+        );
+        if (confirmed) {
+          // Merge — avoid duplicates by id
+          const existingIds = new Set(tasks.map(t=>t.id));
+          const newTasks = (data.tasks||[]).filter(t=>!existingIds.has(t.id));
+          tasks = [...tasks, ...newTasks];
+          // Merge categories
+          const existingCatIds = new Set(categories.map(c=>c.id));
+          const newCats = (data.categories||[]).filter(c=>!existingCatIds.has(c.id));
+          categories = [...categories, ...newCats];
+          showToast(`Merged: ${newTasks.length} new tasks added ✓`);
+        } else {
+          tasks      = data.tasks      || [];
+          categories = data.categories || [];
+          showToast(`Resumed: ${tasks.length} tasks loaded ✓`);
+        }
+      } else {
+        tasks      = data.tasks      || [];
+        categories = data.categories || [];
+        showToast(`Resumed: ${tasks.length} tasks loaded ✓`);
+      }
+      // Restore trend data
+      if (data.trend) {
+        try { localStorage.setItem(TRK, JSON.stringify(data.trend)); } catch(e){}
+      }
+      save();
+      renderAll();
+    } catch(err) {
+      showToast('Could not read file — is it a WeekFlow backup?');
+    }
+    // Reset file input so same file can be re-imported
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── SAVE SLOTS: named in-browser snapshots
+function getSlots() {
+  try { return JSON.parse(localStorage.getItem(SLOTS_KEY)||'[]'); } catch(e){ return []; }
+}
+function saveToSlot() {
+  const name = document.getElementById('saveSlotName').value.trim();
+  if (!name) { showToast('Enter a save name'); return; }
+  const slots = getSlots();
+  const slot = {
+    id:         'slot_' + Date.now(),
+    name,
+    savedAt:    new Date().toISOString(),
+    taskCount:  tasks.length,
+    doneCount:  tasks.filter(t=>t.status==='done').length,
+    tasks:      JSON.parse(JSON.stringify(tasks)),
+    categories: JSON.parse(JSON.stringify(categories)),
+  };
+  slots.unshift(slot);
+  // Keep max 10 slots
+  if (slots.length > 10) slots.splice(10);
+  try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); } catch(e){}
+  document.getElementById('saveSlotName').value = '';
+  renderSaveSlots();
+  showToast(`"${name}" saved ✓`);
+}
+
+function loadSlot(id) {
+  const slots = getSlots();
+  const slot = slots.find(s=>s.id===id);
+  if (!slot) return;
+  const confirmed = window.confirm(
+    `Load "${slot.name}"?\nThis will replace your current ${tasks.length} task${tasks.length!==1?'s':''} with the ${slot.taskCount} tasks from this save.`
+  );
+  if (!confirmed) return;
+  tasks      = JSON.parse(JSON.stringify(slot.tasks));
+  categories = JSON.parse(JSON.stringify(slot.categories));
+  save();
+  renderAll();
+  closeModal('saveModal');
+  showToast(`"${slot.name}" loaded ✓`);
+}
+
+function deleteSlot(id) {
+  let slots = getSlots();
+  slots = slots.filter(s=>s.id!==id);
+  try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); } catch(e){}
+  renderSaveSlots();
+  showToast('Save deleted');
+}
+
+function renderSaveSlots() {
+  const slots  = getSlots();
+  const el     = document.getElementById('saveSlotList');
+  if (!el) return;
+  if (!slots.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--label);text-align:center;padding:10px">No saved slots yet — save one above</div>';
+    return;
+  }
+  el.innerHTML = slots.map(s => {
+    const d       = new Date(s.savedAt);
+    const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const pct     = s.taskCount ? Math.round(s.doneCount/s.taskCount*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg2);border-radius:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.name)}</div>
+        <div style="font-size:11px;color:var(--label);margin-top:1px">${dateStr} · ${s.taskCount} tasks · ${pct}% done</div>
+      </div>
+      <button class="btn btn-green btn-sm" onclick="loadSlot('${s.id}')">Resume</button>
+      <button class="icon-btn" onclick="deleteSlot('${s.id}')" title="Delete slot">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function openSaveModal() {
+  renderSaveSlots();
+  const ls = localStorage.getItem(LAST_SAVED_KEY);
+  const statusEl = document.getElementById('autoSaveStatus');
+  if (statusEl && ls) {
+    const d = new Date(ls);
+    statusEl.textContent = 'Last auto-save: ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  }
+  document.getElementById('saveModal').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════
+// FIREBASE — Auth, Firestore, Collaboration
+// ═══════════════════════════════════════════════════
+const FB_CONFIG_KEY  = 'wf_fb_config';
+const FB_SKIP_KEY    = 'wf_fb_skip';
+const FB_WS_KEY      = 'wf_workspace_id'; // which workspace this user is viewing
+
+let fbApp = null, fbAuth = null, fbDb = null;
+let currentUser = null;          // Firebase user object
+let currentWorkspaceId = null;   // uid of workspace owner
+let unsubTasks = null;           // Firestore listener unsubscribe
+let unsubCats  = null;
+let fbOnline   = false;
+
+// ── Show setup screen or init Firebase if config already saved
+function initFirebase() {
+  // Config is pre-configured — boot directly
+  const HARDCODED_CONFIG = {
+    apiKey:            "AIzaSyC-RZRSwrgcfUdVFEgyC9w2lJpQdaRLuH4",
+    authDomain:        "weekflow-2792d.firebaseapp.com",
+    projectId:         "weekflow-2792d",
+    storageBucket:     "weekflow-2792d.firebasestorage.app",
+    messagingSenderId: "920622638314",
+    appId:             "1:920622638314:web:177ab109f96e11c1b76393",
+    measurementId:     "G-YK6KLFF8MH"
+  };
+  localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(HARDCODED_CONFIG));
+  localStorage.removeItem(FB_SKIP_KEY);
+  bootFirebase(HARDCODED_CONFIG);
+}
+
+// ── Parse + validate the pasted config block
+function connectFirebase() {
+  const raw = document.getElementById('fbConfigInput').value.trim();
+  const errEl = document.getElementById('fb-config-error');
+  errEl.style.display = 'none';
+  try {
+    // Accept with or without surrounding braces / variable declaration
+    let json = raw;
+    // Strip "const firebaseConfig = " or "var firebaseConfig = "
+    json = json.replace(/^.*?=\s*/, '').replace(/;?\s*$/, '');
+    // Convert unquoted keys to quoted  (apiKey: → "apiKey":)
+    json = json.replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+    const cfg = JSON.parse(json);
+    if (!cfg.apiKey || !cfg.projectId) throw new Error('Missing apiKey or projectId');
+    localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+    document.getElementById('fb-setup-screen').style.display = 'none';
+    bootFirebase(cfg);
+  } catch(e) {
+    errEl.textContent = '⚠️ Could not parse config: ' + e.message + '. Make sure you pasted the full firebaseConfig object.';
+    errEl.style.display = 'block';
+  }
+}
+
+function skipFirebase() {
+  localStorage.setItem(FB_SKIP_KEY, '1');
+  document.getElementById('fb-setup-screen').style.display = 'none';
+  renderAuthArea(null);
+}
+
+// ── Dynamically load Firebase SDK and boot
+function bootFirebase(cfg) {
+  const sdkBase = 'https://www.gstatic.com/firebasejs/10.12.0';
+  let loaded = 0;
+  const scripts = [
+    `${sdkBase}/firebase-app.js`,
+    `${sdkBase}/firebase-auth.js`,
+    `${sdkBase}/firebase-firestore.js`,
+  ];
+  scripts.forEach(src => {
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.textContent = ''; // placeholder
+    document.head.appendChild(s);
+  });
+
+  // Use importmap-style dynamic import via a module script
+  const mod = document.createElement('script');
+  mod.type = 'module';
+  mod.textContent = `
+    import { initializeApp }           from '${sdkBase}/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from '${sdkBase}/firebase-auth.js';
+    import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, updateDoc, getDoc, getDocs, addDoc, serverTimestamp, query, where } from '${sdkBase}/firebase-firestore.js';
+
+    const app  = initializeApp(${JSON.stringify(cfg)});
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // expose to global scope
+    window._fb = { app, auth, db, GoogleAuthProvider, signInWithPopup, signOut,
+      onAuthStateChanged, doc, collection, onSnapshot, setDoc, deleteDoc,
+      updateDoc, getDoc, getDocs, addDoc, serverTimestamp, query, where };
+    window._fbReady = true;
+    window.dispatchEvent(new Event('fb-ready'));
+  `;
+  document.head.appendChild(mod);
+
+  window.addEventListener('fb-ready', () => {
+    const fb = window._fb;
+    fbAuth = fb.auth; fbDb = fb.db;
+
+    // Patch save() to also push to Firestore
+    const _origSave = save;
+    window.save = function() { _origSave(); _fbSyncOnSave(); };
+    // Patch deleteTask() to also remove from Firestore
+    const _origDelTask = deleteTask;
+    window.deleteTask = function(id) {
+      if (!id) return;
+      tasks = tasks.filter(t => t.id !== id);
+      deleteTaskFromFirestore(id);
+      _origSave(); _fbSyncOnSave();
+      closeModal('taskModal'); renderAll(); showToast('Task deleted');
+    };
+
+    fb.onAuthStateChanged(fbAuth, user => {
+      currentUser = user;
+      renderAuthArea(user);
+      if (user) {
+        // Default workspace = own uid
+        if (!currentWorkspaceId) currentWorkspaceId = user.uid;
+        localStorage.setItem(FB_WS_KEY, currentWorkspaceId);
+        ensureUserDoc(user);
+        attachFirestoreListeners();
+        renderCollabUI();
+        document.getElementById('collabBtn') && (document.getElementById('collabBtn').style.display = '');
+        fbOnline = true;
+        renderSyncDot();
+      } else {
+        detachListeners();
+        fbOnline = false;
+        renderSyncDot();
+      }
+    });
+  }, { once: true });
+}
+
+// ── Keep a user doc in /users/{uid} so collaborators can look up names
+async function ensureUserDoc(user) {
+  if (!fbDb) return;
+  const { doc, setDoc } = window._fb;
+  await setDoc(doc(fbDb, 'users', user.uid), {
+    uid:         user.uid,
+    displayName: user.displayName || '',
+    email:       user.email || '',
+    photoURL:    user.photoURL || '',
+    lastSeen:    window._fb.serverTimestamp(),
+  }, { merge: true });
+}
+
+// ── Firestore real-time listeners
+function attachFirestoreListeners() {
+  if (!fbDb || !currentWorkspaceId) return;
+  detachListeners();
+  const fb = window._fb;
+  const wsId = currentWorkspaceId;
+
+  // Tasks
+  unsubTasks = fb.onSnapshot(fb.collection(fbDb, 'workspaces', wsId, 'tasks'), snap => {
+    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    saveTrend();
+    renderAll();
+    showSyncPulse();
+  });
+  // Categories
+  unsubCats = fb.onSnapshot(fb.collection(fbDb, 'workspaces', wsId, 'categories'), snap => {
+    if (!snap.empty) {
+      categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    }
+  });
+}
+
+function detachListeners() {
+  if (unsubTasks) { unsubTasks(); unsubTasks = null; }
+  if (unsubCats)  { unsubCats();  unsubCats  = null; }
+}
+
+// ── Override save() when Firebase is active — patch applied after init
+function _fbSyncOnSave() {
+  if (!fbDb || !currentUser || !currentWorkspaceId) return;
+  syncToFirestore();
+}
+
+let _syncTimer = null;
+function syncToFirestore() {
+  // Debounce — batch writes 600ms after last change
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(_doSync, 600);
+}
+
+async function _doSync() {
+  if (!fbDb || !currentWorkspaceId) return;
+  const fb = window._fb;
+  const wsId = currentWorkspaceId;
+  try {
+    for (const cat of categories) {
+      await fb.setDoc(fb.doc(fbDb, 'workspaces', wsId, 'categories', cat.id),
+        { ...cat, updatedAt: fb.serverTimestamp() }, { merge: true });
+    }
+    for (const t of tasks) {
+      await fb.setDoc(fb.doc(fbDb, 'workspaces', wsId, 'tasks', t.id),
+        { ...t, updatedAt: fb.serverTimestamp() }, { merge: true });
+    }
+    showSyncPulse();
+  } catch(e) {
+    console.warn('Firestore sync error:', e);
+  }
+}
+
+async function deleteTaskFromFirestore(id) {
+  if (!fbDb || !currentWorkspaceId) return;
+  const fb = window._fb;
+  try {
+    await fb.deleteDoc(fb.doc(fbDb, 'workspaces', currentWorkspaceId, 'tasks', id));
+  } catch(e) {}
+}
+
+// ── Auth UI
+function renderAuthArea(user) {
+  const el = document.getElementById('authArea');
+  if (!el) return;
+  if (user) {
+    const initials = (user.displayName || user.email || 'U').split(' ').map(s=>s[0]).join('').substring(0,2).toUpperCase();
+    const photo    = user.photoURL ? `<img src="${user.photoURL}" class="user-avatar" onclick="openModal('userModal')">` :
+      `<div class="collab-avatar" style="width:28px;height:28px;font-size:11px" onclick="openModal('userModal')">${initials}</div>`;
+    el.innerHTML = `<div class="user-pill" onclick="openModal('userModal')">
+      ${photo}
+      <span class="user-pill-name">${user.displayName || user.email}</span>
+    </div>`;
+    // Fill user modal
+    const umName = document.getElementById('um-name');
+    const umEmail = document.getElementById('um-email');
+    const umAvatar = document.getElementById('um-avatar');
+    const umInit = document.getElementById('um-initials');
+    if (umName)   umName.textContent  = user.displayName || '';
+    if (umEmail)  umEmail.textContent = user.email || '';
+    if (umAvatar && user.photoURL) { umAvatar.src = user.photoURL; umAvatar.style.display=''; if(umInit) umInit.style.display='none'; }
+    else if (umInit) { umInit.textContent = initials; umInit.style.display=''; }
+  } else {
+    el.innerHTML = `<button class="login-btn" onclick="signInWithGoogle()">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>`;
+  }
+}
+
+function signInWithGoogle() {
+  if (!fbAuth) { showToast('Firebase not connected — set it up first'); showFirebaseSetup(); return; }
+  const fb = window._fb;
+  const provider = new fb.GoogleAuthProvider();
+  fb.signInWithPopup(fbAuth, provider).catch(e => showToast('Sign-in failed: ' + e.message));
+}
+
+function signOut() {
+  if (!fbAuth) return;
+  detachListeners();
+  fbOnline = false;
+  window._fb.signOut(fbAuth);
+  closeModal('userModal');
+  closeModal('collabModal');
+  currentWorkspaceId = null;
+  document.getElementById('collabBtn') && (document.getElementById('collabBtn').style.display = 'none');
+  showToast('Signed out');
+}
+
+function showFirebaseSetup() {
+  document.getElementById('fb-setup-screen').style.display = 'flex';
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+// ── Collaboration
+function openCollabModal() {
+  closeModal('userModal');
+  renderCollabUI();
+  document.getElementById('collabModal').classList.add('open');
+}
+
+async function renderCollabUI() {
+  if (!currentUser || !fbDb) return;
+  const fb = window._fb;
+  const wsId = currentWorkspaceId || currentUser.uid;
+
+  // Sync dot
+  renderSyncDot();
+
+  // Workspace ID display
+  const wsEl = document.getElementById('wsIdDisplay');
+  if (wsEl) wsEl.textContent = wsId;
+
+  // Current user
+  const cuEl = document.getElementById('collabCurrentUser');
+  if (cuEl) cuEl.style.display = '';
+  const cnEl = document.getElementById('collabUserName');
+  const ceEl = document.getElementById('collabUserEmail');
+  const caEl = document.getElementById('collabAvatarBig');
+  if (cnEl) cnEl.textContent = currentUser.displayName || '';
+  if (ceEl) ceEl.textContent = currentUser.email || '';
+  if (caEl) caEl.textContent = (currentUser.displayName||currentUser.email||'U').split(' ').map(s=>s[0]).join('').substring(0,2).toUpperCase();
+
+  // Load collaborators from workspace doc
+  try {
+    const wsDoc = await fb.getDoc(fb.doc(fbDb, 'workspaces', wsId));
+    const data  = wsDoc.exists() ? wsDoc.data() : {};
+    const collabs = data.collaborators || [];
+    const listEl  = document.getElementById('collabList');
+    const countEl = document.getElementById('collabCount');
+    if (countEl) countEl.textContent = collabs.length ? `(${collabs.length})` : '';
+    if (listEl) {
+      listEl.innerHTML = collabs.length
+        ? collabs.map(c => {
+            const init = (c.name||c.email||'?').split(' ').map(s=>s[0]).join('').substring(0,2).toUpperCase();
+            const isOwner = c.uid === wsId;
+            return `<div class="collab-chip">
+              <div class="collab-avatar">${init}</div>
+              <div class="collab-info">
+                <div class="collab-name">${escHtml(c.name||c.email)}</div>
+                <div class="collab-email">${escHtml(c.email)}</div>
+              </div>
+              <span class="collab-badge" style="background:rgba(0,122,255,0.1);color:var(--blue)">${isOwner?'Owner':'Editor'}</span>
+              ${!isOwner && currentUser.uid === wsId ? `<button class="icon-btn" onclick="removeCollaborator('${c.uid||c.email}')" title="Remove">✕</button>` : ''}
+            </div>`;
+          }).join('')
+        : `<div style="font-size:12px;color:var(--label);font-style:italic;padding:4px 0">No collaborators yet — invite someone above</div>`;
+    }
+  } catch(e) {}
+}
+
+async function inviteCollaborator() {
+  const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('Enter a valid email'); return; }
+  if (!fbDb || !currentUser) { showToast('Sign in first'); return; }
+  const fb = window._fb;
+  const wsId = currentWorkspaceId || currentUser.uid;
+
+  try {
+    // Ensure workspace doc exists
+    await fb.setDoc(fb.doc(fbDb, 'workspaces', wsId), {
+      ownerUid:   currentUser.uid,
+      ownerEmail: currentUser.email,
+      ownerName:  currentUser.displayName || '',
+      createdAt:  fb.serverTimestamp(),
+    }, { merge: true });
+
+    // Look up user by email
+    const usersQ = fb.query(fb.collection(fbDb,'users'), fb.where('email','==',email));
+    const snap   = await fb.getDocs(usersQ);
+    const found  = !snap.empty ? snap.docs[0].data() : null;
+
+    const entry = {
+      email,
+      uid:  found ? found.uid  : null,
+      name: found ? found.displayName : email,
+      addedAt: fb.serverTimestamp(),
+    };
+
+    // Add to collaborators array (setDoc merge trick using a sub-doc per email)
+    const safeKey = email.replace(/[@.]/g,'_');
+    await fb.setDoc(fb.doc(fbDb,'workspaces',wsId,'collaborators',safeKey), entry, {merge:true});
+
+    // Re-read and update root doc collaborators array for easy reads
+    const collabSnap = await fb.getDocs(fb.collection(fbDb,'workspaces',wsId,'collaborators'));
+    const collabs = collabSnap.docs.map(d=>d.data());
+    await fb.updateDoc(fb.doc(fbDb,'workspaces',wsId), { collaborators: collabs });
+
+    document.getElementById('inviteEmail').value = '';
+    showToast(`Invited ${email} ✓`);
+    renderCollabUI();
+
+    // Also write a "shared with me" record for the invitee if we found their uid
+    if (found && found.uid) {
+      await fb.setDoc(fb.doc(fbDb,'users',found.uid,'sharedWorkspaces',wsId), {
+        ownerUid:   currentUser.uid,
+        ownerEmail: currentUser.email,
+        ownerName:  currentUser.displayName || '',
+        wsId,
+        addedAt: fb.serverTimestamp(),
+      }, {merge:true});
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function removeCollaborator(uidOrEmail) {
+  if (!fbDb || !currentUser) return;
+  const fb = window._fb;
+  const wsId = currentWorkspaceId || currentUser.uid;
+  const safeKey = uidOrEmail.replace(/[@.]/g,'_');
+  try {
+    await fb.deleteDoc(fb.doc(fbDb,'workspaces',wsId,'collaborators',safeKey));
+    const collabSnap = await fb.getDocs(fb.collection(fbDb,'workspaces',wsId,'collaborators'));
+    await fb.updateDoc(fb.doc(fbDb,'workspaces',wsId),{ collaborators: collabSnap.docs.map(d=>d.data()) });
+    showToast('Removed collaborator');
+    renderCollabUI();
+  } catch(e) { showToast('Error: '+e.message); }
+}
+
+async function joinWorkspace() {
+  const wsId = document.getElementById('joinWsId').value.trim();
+  if (!wsId) { showToast('Paste a workspace ID'); return; }
+  if (!fbDb || !currentUser) { showToast('Sign in first'); return; }
+  detachListeners();
+  currentWorkspaceId = wsId;
+  localStorage.setItem(FB_WS_KEY, wsId);
+  attachFirestoreListeners();
+  document.getElementById('joinWsId').value = '';
+  document.getElementById('wsMyBtn') && document.getElementById('wsMyBtn').classList.remove('active');
+  document.getElementById('wsSharedBtn') && document.getElementById('wsSharedBtn').classList.add('active');
+  showToast('Joined workspace ✓');
+  closeModal('collabModal');
+}
+
+function switchWorkspace(which) {
+  if (!currentUser) return;
+  if (which === 'mine') {
+    currentWorkspaceId = currentUser.uid;
+    document.getElementById('wsMyBtn').classList.add('active');
+    document.getElementById('wsSharedBtn').classList.remove('active');
+  } else {
+    document.getElementById('wsMyBtn').classList.remove('active');
+    document.getElementById('wsSharedBtn').classList.add('active');
+    // Show shared workspaces list — simplified: use joinWsId flow
+    showToast('Paste a workspace ID in the Join field below');
+    return;
+  }
+  localStorage.setItem(FB_WS_KEY, currentWorkspaceId);
+  detachListeners();
+  attachFirestoreListeners();
+  renderCollabUI();
+}
+
+function copyWorkspaceId() {
+  const wsId = currentWorkspaceId || (currentUser && currentUser.uid) || '';
+  navigator.clipboard.writeText(wsId).then(()=>showToast('Workspace ID copied ✓'));
+}
+
+function renderSyncDot() {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncStatus');
+  if (!dot || !txt) return;
+  if (fbOnline && currentUser) {
+    dot.classList.remove('offline');
+    txt.textContent = 'Live sync active — changes save instantly';
+  } else {
+    dot.classList.add('offline');
+    txt.textContent = 'Offline — saved locally only';
+  }
+}
+
+function showSyncPulse() {
+  updateLastSavedLabel(new Date().toISOString());
+}
+
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
