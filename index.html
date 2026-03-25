@@ -1200,17 +1200,15 @@ window._fbReady = false;
           <div class="week-day-strip" id="dayStrip"></div>
 
           <!-- Filter row -->
-<div class="filter-chips" id="filterChips">
-  <button class="chip active" onclick="setFilter('all',this)">All Tasks</button>
-  <button class="chip" onclick="setFilter('todo',this)">Todo</button>
-  <button class="chip" onclick="setFilter('in_progress',this)">In Progress</button>
-  <button class="chip" onclick="setFilter('done',this)">Done</button>
-  <button class="chip" onclick="setFilter('blocked',this)">Blocked</button>
-  <button class="chip" onclick="setFilter('mine',this)" id="chip-mine" style="display:none">👤 Assigned to Me</button>
-  <button class="chip" onclick="setFilter('mine-all',this)" id="chip-mine-all" style="display:none">
-    👤 Assigned to Me (All Workspaces)
-  </button>
-</div>
+          <div class="tasks-header">
+            <div class="filter-chips" id="filterChips">
+              <button class="chip active" onclick="setFilter('all',this)">All Tasks</button>
+              <button class="chip" onclick="setFilter('todo',this)">Todo</button>
+              <button class="chip" onclick="setFilter('in_progress',this)">In Progress</button>
+              <button class="chip" onclick="setFilter('done',this)">Done</button>
+              <button class="chip" onclick="setFilter('blocked',this)">Blocked</button>
+              <button class="chip" onclick="setFilter('mine',this)" id="chip-mine" style="display:none">👤 Assigned to Me</button>
+            </div>
             <div style="display:flex;gap:6px;align-items:center">
               <button class="btn btn-ghost btn-sm" onclick="filterDay=null;renderTasks()" id="clearDayBtn" style="display:none">✕ Day Filter</button>
               <button class="btn btn-secondary btn-sm" onclick="clearDone()">Clear Done</button>
@@ -2065,84 +2063,17 @@ function clearDone() {
   tasks = tasks.filter(t=>t.status!=='done');
   save(); renderAll(); showToast('Done tasks cleared');
 }
-function renderTasks() {
-  renderDayStrip();
-  const list = document.getElementById('taskList');
 
-  let filtered = [];
-
-  // ── Special handling for global "Assigned to Me (All Workspaces)" ──
-  if (currentFilter === 'mine-all') {
-    filtered = [...myAssignedTasks];           // Use tasks from ALL workspaces
-  } 
-  // ── Assigned to me in CURRENT workspace only ──
-  else if (currentFilter === 'mine') {
-    const myEmail = currentUser ? (currentUser.email || '').toLowerCase() : '';
-    filtered = tasks.filter(t => t.assigneeEmail === myEmail);
-  } 
-  // ── Normal filters (All, Todo, In Progress, Done, Blocked) ──
-  else {
-    filtered = tasks.filter(t => isInCurrentWeek(t));
-
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(t => t.status === currentFilter);
-    }
-  }
-
-  // Day filter (works with all modes)
-  if (filterDay) {
-    filtered = filtered.filter(t => taskDayName(t) === filterDay);
-  }
-
-  // Show empty state if nothing found
-  if (!filtered.length) {
-    const msg = filterDay 
-      ? 'No tasks on ' + filterDay 
-      : currentFilter === 'all' 
-        ? 'No tasks this week' 
-        : currentFilter === 'mine-all' 
-          ? 'No tasks assigned to you across any workspace' 
-          : 'No ' + currentFilter.replace('_', ' ') + ' tasks';
-
-    list.innerHTML = `<div class="empty">
-      <div class="empty-icon-wrap">✦</div>
-      <div class="empty-title">Everything is clear.</div>
-      <div class="empty-sub">${msg}. Use the form above to capture your next task.</div>
-      <div class="empty-actions">
-        <span class="empty-link" onclick="openNewModal()">Add detailed task ›</span>
-        <span class="empty-link" onclick="triggerImport()">Import tasks ›</span>
-      </div>
-    </div>`;
-    return;
-  }
-
-  // Sort tasks (high priority first, then due date, etc.)
-  const sorted = sortTasks(filtered);
-
-  // If using any specific filter (including mine-all or mine), show flat list
-  if (currentFilter !== 'all' || filterDay) {
-    list.innerHTML = sorted.map(taskHTML).join('');
-    return;
-  }
-
-  // Otherwise group by status (Blocked → In Progress → Todo → Done)
-  const ORDER = ['blocked', 'in_progress', 'todo', 'done'];
-  const LABELS = {
-    blocked: '⛔ Blocked',
-    in_progress: '◐ In Progress',
-    todo: '○ To Do',
-    done: '✓ Completed'
-  };
-
-  list.innerHTML = ORDER.map(status => {
-    const grp = sortTasks(filtered.filter(t => t.status === status));
-    if (!grp.length) return '';
-    return `<div class="task-group">
-      <div class="group-label">${LABELS[status]} <span style="opacity:0.6;font-weight:400">${grp.length}</span></div>
-      ${grp.map(taskHTML).join('')}
-    </div>`;
-  }).join('');
+function setFilter(f,el) {
+  currentFilter=f;
+  document.querySelectorAll('#filterChips .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); renderTasks();
 }
+
+function toggleBlockedField(val) {
+  document.getElementById('m-blocked-reason-group').style.display = val==='blocked'?'flex':'none';
+}
+
 // ═══════════════════════════════════════════════════
 // MODALS
 // ═══════════════════════════════════════════════════
@@ -3031,49 +2962,109 @@ function openSaveModal() {
 }
 
 // ═══════════════════════════════════════════════════
-// FIREBASE — Auth, Firestore, Collaboration (Improved)
+// FIREBASE — Auth, Firestore, Collaboration
 // ═══════════════════════════════════════════════════
 const FB_CONFIG_KEY  = 'wf_fb_config';
-const FB_WS_KEY      = 'wf_workspace_id';
+const FB_SKIP_KEY    = 'wf_fb_skip';
+const FB_WS_KEY      = 'wf_workspace_id'; // which workspace this user is viewing
 
 let fbApp = null, fbAuth = null, fbDb = null;
-let currentUser = null;
-let currentWorkspaceId = null;
-let unsubTasks = null;
-let unsubMyTasks = null;        // ← New: Global "Assigned to Me" listener
-let fbOnline = false;
+let currentUser = null;          // Firebase user object
+let currentWorkspaceId = null;   // uid of workspace owner
+let unsubTasks    = null;        // Firestore listener unsubscribe
+let unsubCats     = null;
+let unsubAssigned = null;        // listener for tasks assigned to me from other workspaces
+let fbOnline   = false;
 
-let myAssignedTasks = [];       // Stores tasks assigned to me from ALL workspaces
+// Separate buckets so both listeners can coexist without overwriting each other
+let workspaceTasks    = [];   // tasks from the current workspace snapshot
+let assignedToMeTasks = [];   // tasks pushed to me by other workspace owners
 
-// ── Init Firebase
+function _mergeTasks() {
+  // Combine workspace tasks + cross-workspace assigned tasks (deduped by id)
+  const wsIds = new Set(workspaceTasks.map(t => t.id));
+  const extra = assignedToMeTasks.filter(t => !wsIds.has(t.id));
+  tasks = [...workspaceTasks, ...extra];
+}
+
+// ── Show setup screen or init Firebase if config already saved
 function initFirebase() {
+  // Config is pre-configured — boot directly
   const HARDCODED_CONFIG = {
-    apiKey: "AIzaSyC-RZRSwrgcfUdVFEgyC9w2lJpQdaRLuH4",
-    authDomain: "weekflow-2792d.firebaseapp.com",
-    projectId: "weekflow-2792d",
-    storageBucket: "weekflow-2792d.firebasestorage.app",
+    apiKey:            "AIzaSyC-RZRSwrgcfUdVFEgyC9w2lJpQdaRLuH4",
+    authDomain:        "weekflow-2792d.firebaseapp.com",
+    projectId:         "weekflow-2792d",
+    storageBucket:     "weekflow-2792d.firebasestorage.app",
     messagingSenderId: "920622638314",
-    appId: "1:920622638314:web:177ab109f96e11c1b76393"
+    appId:             "1:920622638314:web:177ab109f96e11c1b76393",
+    measurementId:     "G-YK6KLFF8MH"
   };
   localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(HARDCODED_CONFIG));
+  localStorage.removeItem(FB_SKIP_KEY);
   bootFirebase(HARDCODED_CONFIG);
 }
 
+// ── Parse + validate the pasted config block
+function connectFirebase() {
+  const raw = document.getElementById('fbConfigInput').value.trim();
+  const errEl = document.getElementById('fb-config-error');
+  errEl.style.display = 'none';
+  try {
+    // Accept with or without surrounding braces / variable declaration
+    let json = raw;
+    // Strip "const firebaseConfig = " or "var firebaseConfig = "
+    json = json.replace(/^.*?=\s*/, '').replace(/;?\s*$/, '');
+    // Convert unquoted keys to quoted  (apiKey: → "apiKey":)
+    json = json.replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+    const cfg = JSON.parse(json);
+    if (!cfg.apiKey || !cfg.projectId) throw new Error('Missing apiKey or projectId');
+    localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+    document.getElementById('fb-setup-screen').style.display = 'none';
+    bootFirebase(cfg);
+  } catch(e) {
+    errEl.textContent = '⚠️ Could not parse config: ' + e.message + '. Make sure you pasted the full firebaseConfig object.';
+    errEl.style.display = 'block';
+  }
+}
+
+function skipFirebase() {
+  localStorage.setItem(FB_SKIP_KEY, '1');
+  document.getElementById('fb-setup-screen').style.display = 'none';
+  renderAuthArea(null);
+}
+
+// ── Dynamically load Firebase SDK and boot
 function bootFirebase(cfg) {
   const sdkBase = 'https://www.gstatic.com/firebasejs/10.12.0';
+  let loaded = 0;
+  const scripts = [
+    `${sdkBase}/firebase-app.js`,
+    `${sdkBase}/firebase-auth.js`,
+    `${sdkBase}/firebase-firestore.js`,
+  ];
+  scripts.forEach(src => {
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.textContent = ''; // placeholder
+    document.head.appendChild(s);
+  });
+
+  // Use importmap-style dynamic import via a module script
   const mod = document.createElement('script');
   mod.type = 'module';
   mod.textContent = `
-    import { initializeApp } from '${sdkBase}/firebase-app.js';
+    import { initializeApp }           from '${sdkBase}/firebase-app.js';
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from '${sdkBase}/firebase-auth.js';
-    import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, updateDoc, query, where, serverTimestamp } from '${sdkBase}/firebase-firestore.js';
+    import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, updateDoc, getDoc, getDocs, addDoc, serverTimestamp, query, where } from '${sdkBase}/firebase-firestore.js';
 
     const app  = initializeApp(${JSON.stringify(cfg)});
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    window._fb = { app, auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-      collection, onSnapshot, setDoc, deleteDoc, updateDoc, query, where, serverTimestamp };
+    // expose to global scope
+    window._fb = { app, auth, db, GoogleAuthProvider, signInWithPopup, signOut,
+      onAuthStateChanged, doc, collection, onSnapshot, setDoc, deleteDoc,
+      updateDoc, getDoc, getDocs, addDoc, serverTimestamp, query, where };
     window._fbReady = true;
     window.dispatchEvent(new Event('fb-ready'));
   `;
@@ -3081,17 +3072,33 @@ function bootFirebase(cfg) {
 
   window.addEventListener('fb-ready', () => {
     const fb = window._fb;
-    fbAuth = fb.auth; 
-    fbDb = fb.db;
+    fbAuth = fb.auth; fbDb = fb.db;
+
+    // Patch save() to also push to Firestore
+    const _origSave = save;
+    window.save = function() { _origSave(); _fbSyncOnSave(); };
+    // Patch deleteTask() to also remove from Firestore
+    const _origDelTask = deleteTask;
+    window.deleteTask = function(id) {
+      if (!id) return;
+      tasks = tasks.filter(t => t.id !== id);
+      deleteTaskFromFirestore(id);
+      _origSave(); _fbSyncOnSave();
+      closeModal('taskModal'); renderAll(); showToast('Task deleted');
+    };
 
     fb.onAuthStateChanged(fbAuth, user => {
       currentUser = user;
       renderAuthArea(user);
       if (user) {
-        currentWorkspaceId = localStorage.getItem(FB_WS_KEY) || user.uid;
+        // Restore previously joined workspace from localStorage (fixes refresh bug)
+        const savedWs = localStorage.getItem(FB_WS_KEY);
+        currentWorkspaceId = (savedWs && savedWs !== user.uid) ? savedWs : user.uid;
         localStorage.setItem(FB_WS_KEY, currentWorkspaceId);
         ensureUserDoc(user);
         attachFirestoreListeners();
+        renderCollabUI();
+        document.getElementById('collabBtn') && (document.getElementById('collabBtn').style.display = '');
         fbOnline = true;
         renderSyncDot();
       } else {
@@ -3103,97 +3110,160 @@ function bootFirebase(cfg) {
   }, { once: true });
 }
 
-// ── Attach Listeners (Main Fix Here)
-function attachFirestoreListeners() {
-  if (!fbDb || !currentUser) return;
-  detachListeners();
-
-  const fb = window._fb;
-  const wsId = currentWorkspaceId;
-  const myEmail = currentUser.email.toLowerCase();
-
-  // 1. Normal listener for current workspace
-  unsubTasks = fb.onSnapshot(
-    fb.collection(fbDb, 'workspaces', wsId, 'tasks'),
-    snap => {
-      tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      saveTrend();
-      renderAll();
-      showSyncPulse();
-    }
-  );
-
-  // 2. NEW: Global "Assigned to Me" across ALL workspaces (Collection Group Query)
-  if (unsubMyTasks) unsubMyTasks();
-
-  const q = fb.query(
-    fb.collectionGroup(fbDb, 'tasks'),
-    fb.where('assigneeEmail', '==', myEmail)
-  );
-
-  unsubMyTasks = fb.onSnapshot(q, snap => {
-    myAssignedTasks = snap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        workspaceId: doc.ref.parent.parent.id,  // workspace id
-        ...data
-      };
-    });
-
-    // If user is currently on "Assigned to Me (All)" filter → refresh immediately
-    if (currentFilter === 'mine-all') {
-      tasks = [...myAssignedTasks];
-      renderTasks();
-    }
-  });
-}
-
-function detachListeners() {
-  if (unsubTasks) { unsubTasks(); unsubTasks = null; }
-  if (unsubMyTasks) { unsubMyTasks(); unsubMyTasks = null; }
-}
-
-// ── Rest of Firebase functions (unchanged except small improvements)
+// ── Keep a user doc in /users/{uid} so collaborators can look up names
 async function ensureUserDoc(user) {
   if (!fbDb) return;
   const { doc, setDoc } = window._fb;
   await setDoc(doc(fbDb, 'users', user.uid), {
-    uid: user.uid, displayName: user.displayName || '', email: user.email || '',
-    photoURL: user.photoURL || '', lastSeen: window._fb.serverTimestamp()
+    uid:         user.uid,
+    displayName: user.displayName || '',
+    email:       user.email || '',
+    photoURL:    user.photoURL || '',
+    lastSeen:    window._fb.serverTimestamp(),
   }, { merge: true });
 }
 
-// Sync to Firestore (when saving in current workspace)
-function _fbSyncOnSave() {
+// ── Firestore real-time listeners
+function attachFirestoreListeners() {
   if (!fbDb || !currentWorkspaceId) return;
-  // ... (keep your existing sync logic or leave as is)
+  detachListeners();
+  const fb = window._fb;
+  const wsId = currentWorkspaceId;
+
+  // Tasks (own / joined workspace)
+  unsubTasks = fb.onSnapshot(fb.collection(fbDb, 'workspaces', wsId, 'tasks'), snap => {
+    workspaceTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _mergeTasks();
+    saveTrend();
+    renderAll();
+    showSyncPulse();
+  });
+  // Categories
+  unsubCats = fb.onSnapshot(fb.collection(fbDb, 'workspaces', wsId, 'categories'), snap => {
+    if (!snap.empty) {
+      categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    }
+  });
+
+  // ── Cross-workspace "assigned to me" listener
+  // When another user assigns a task to my email, they mirror it to
+  // assignedTo/{safeEmail}/tasks/{taskId}. We listen here so new assignments
+  // appear instantly without the assignee having to join the assigner's workspace.
+  if (currentUser && currentUser.email) {
+    const safeEmail = currentUser.email.replace(/[@.]/g, '_');
+    const myEmail   = currentUser.email.toLowerCase();
+    unsubAssigned = fb.onSnapshot(fb.collection(fbDb, 'assignedTo', safeEmail, 'tasks'), snap => {
+      // Filter out stale mirrors where assignee was later changed
+      assignedToMeTasks = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(t => (t.assigneeEmail || '').toLowerCase() === myEmail);
+      _mergeTasks();
+      renderAll();
+      showSyncPulse();
+    });
+  }
 }
 
-// Render Auth Area + Show new chip
+function detachListeners() {
+  if (unsubTasks)    { unsubTasks();    unsubTasks    = null; }
+  if (unsubCats)     { unsubCats();     unsubCats     = null; }
+  if (unsubAssigned) { unsubAssigned(); unsubAssigned = null; }
+  workspaceTasks    = [];
+  assignedToMeTasks = [];
+}
+
+// ── Override save() when Firebase is active — patch applied after init
+function _fbSyncOnSave() {
+  if (!fbDb || !currentUser || !currentWorkspaceId) return;
+  syncToFirestore();
+}
+
+let _syncTimer = null;
+function syncToFirestore() {
+  // Debounce — batch writes 600ms after last change
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(_doSync, 600);
+}
+
+async function _doSync() {
+  if (!fbDb || !currentWorkspaceId) return;
+  const fb = window._fb;
+  const wsId = currentWorkspaceId;
+  try {
+    for (const cat of categories) {
+      await fb.setDoc(fb.doc(fbDb, 'workspaces', wsId, 'categories', cat.id),
+        { ...cat, updatedAt: fb.serverTimestamp() }, { merge: true });
+    }
+    for (const t of tasks) {
+      await fb.setDoc(fb.doc(fbDb, 'workspaces', wsId, 'tasks', t.id),
+        { ...t, updatedAt: fb.serverTimestamp() }, { merge: true });
+
+      // ── Mirror to assignedTo/{email}/tasks so the assignee sees it instantly
+      // even if they haven't joined this workspace.
+      if (t.assigneeEmail) {
+        const safeEmail = t.assigneeEmail.replace(/[@.]/g, '_');
+        await fb.setDoc(
+          fb.doc(fbDb, 'assignedTo', safeEmail, 'tasks', t.id),
+          { ...t, fromWorkspace: wsId, updatedAt: fb.serverTimestamp() },
+          { merge: true }
+        );
+      }
+    }
+    showSyncPulse();
+  } catch(e) {
+    console.warn('Firestore sync error:', e);
+  }
+}
+
+async function deleteTaskFromFirestore(id) {
+  if (!fbDb || !currentWorkspaceId) return;
+  const fb = window._fb;
+  try {
+    // Delete from main workspace
+    await fb.deleteDoc(fb.doc(fbDb, 'workspaces', currentWorkspaceId, 'tasks', id));
+    // Also delete the assignedTo mirror if it existed
+    const deletedTask = (workspaceTasks || []).find(t => t.id === id);
+    if (deletedTask && deletedTask.assigneeEmail) {
+      const safeEmail = deletedTask.assigneeEmail.replace(/[@.]/g, '_');
+      await fb.deleteDoc(fb.doc(fbDb, 'assignedTo', safeEmail, 'tasks', id));
+    }
+  } catch(e) {}
+}
+
+// ── Auth UI
 function renderAuthArea(user) {
   const el = document.getElementById('authArea');
   if (!el) return;
-
   if (user) {
     const initials = (user.displayName || user.email || 'U').split(' ').map(s=>s[0]).join('').substring(0,2).toUpperCase();
-    const photo = user.photoURL ? 
-      `<img src="${user.photoURL}" class="user-avatar" onclick="openModal('userModal')">` :
+    const photo    = user.photoURL ? `<img src="${user.photoURL}" class="user-avatar" onclick="openModal('userModal')">` :
       `<div class="collab-avatar" style="width:28px;height:28px;font-size:11px" onclick="openModal('userModal')">${initials}</div>`;
-
+    updateAssignChip();
+    // Update welcome name in topbar
     const wnEl = document.getElementById('welcomeName');
-    if (wnEl) wnEl.textContent = (user.displayName || user.email || 'Analyst').split(' ')[0];
-
-    document.getElementById('snav-logout').style.display = '';
-    document.getElementById('chip-mine-all').style.display = '';
-
+    if (wnEl && user) wnEl.textContent = (user.displayName || user.email || 'Analyst').split(' ')[0];
+    // Show logout btn in sidebar
+    const logoutBtn = document.getElementById('snav-logout');
+    if (logoutBtn) logoutBtn.style.display = '';
     el.innerHTML = `<div class="user-pill" onclick="openModal('userModal')">
       ${photo}
       <span class="user-pill-name">${user.displayName || user.email}</span>
     </div>`;
+    // Fill user modal
+    const umName = document.getElementById('um-name');
+    const umEmail = document.getElementById('um-email');
+    const umAvatar = document.getElementById('um-avatar');
+    const umInit = document.getElementById('um-initials');
+    if (umName)   umName.textContent  = user.displayName || '';
+    if (umEmail)  umEmail.textContent = user.email || '';
+    if (umAvatar && user.photoURL) { umAvatar.src = user.photoURL; umAvatar.style.display=''; if(umInit) umInit.style.display='none'; }
+    else if (umInit) { umInit.textContent = initials; umInit.style.display=''; }
   } else {
-    document.getElementById('chip-mine-all').style.display = 'none';
-    el.innerHTML = `<button class="login-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
+    el.innerHTML = `<button class="login-btn" onclick="signInWithGoogle()">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>`;
   }
 }
 
